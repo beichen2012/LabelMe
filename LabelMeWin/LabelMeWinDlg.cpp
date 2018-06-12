@@ -8,6 +8,7 @@
 #include "afxdialogex.h"
 #include "BrowseDir.h"
 #include "DlgAddedLabel.h"
+#include <fstream>
 using namespace cv;
 
 
@@ -61,6 +62,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_WM_LBUTTONUP()
 	ON_WM_MOUSEMOVE()
 	ON_BN_CLICKED(IDC_BTN_LOAD_LABEL, &CLabelMeWinDlg::OnBnClickedBtnLoadLabel)
+	ON_BN_CLICKED(IDC_CHECK_AUTOSAVE, &CLabelMeWinDlg::OnBnClickedCheckAutosave)
 END_MESSAGE_MAP()
 
 
@@ -123,6 +125,10 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mListFiles.InsertColumn(2, _T("名称"), LVCFMT_LEFT, lw * 11);
 
 
+	//自动保存
+	mbAutoSave = true;
+	((CButton *)GetDlgItem(IDC_CHECK_AUTOSAVE))->SetCheck(1);
+
 	
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -171,6 +177,69 @@ float CLabelMeWinDlg::GetPtDistI2(cv::Point& p1, cv::Point& p2)
 	float dist = (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
 	dist = sqrt(dist);
 	return dist;
+}
+
+void CLabelMeWinDlg::SaveLabels()
+{
+	//TODO: 保存标注
+	std::string strRoot;
+	char* p = cstring_to_char(mRootDir);
+	strRoot = p;
+	delete[] p;
+
+	// 标签文件
+	std::string pathLabel = strRoot + "\\" + "label.txt";
+	std::ofstream ofs;
+	ofs.open(pathLabel, std::ios::out);
+	if (!ofs.is_open())
+	{
+		MessageBox(_T("请注意：标签文件并未保存，但这并不影响标注文件的保存"));
+	}
+	else
+	{
+		for (auto& i : msLabels)
+		{
+			ofs << i << std::endl;
+		}
+		ofs.close();
+	}
+	//标注文件
+
+	std::vector<TImgAnno> va;
+	for (auto& i : mvPolys)
+	{
+		TImgAnno ta;
+		ta.label = i.first;
+		for (auto& j : i.second)
+		{
+			TPtAnno pt;
+			pt.x = j.x;
+			pt.y = j.y;
+			ta.pts.push_back(pt);
+		}
+		va.push_back(ta);
+	}
+	//
+	char drive[4096] = { 0 };
+	char dir[4096] = { 0 };
+	char filename[4096] = { 0 };
+	p = cstring_to_char(mCurrentFile);
+	_splitpath(p, drive, dir, filename, NULL);
+	delete[] p;
+	std::string pathJson = std::string(drive) + dir + filename + ".json";
+	iguana::string_stream ss;
+	iguana::json::to_json(ss, va);
+	
+	ofs.open(pathJson, std::ios::out);
+	if (!ofs.is_open())
+	{
+		MessageBox(_T("无法保存该图片的标注文件！"));
+	}
+	else
+	{
+		ofs << ss.str() << std::endl;
+		ofs.close();
+	}
 }
 
 void CLabelMeWinDlg::OnBnClickedOk()
@@ -370,6 +439,35 @@ void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 		MessageBox(_T("已经是最后一张了"));
 		return;
 	}
+	//保存
+	bool bSave = false;
+	if (mvPolys.size() != 0)
+	{
+		if (!mbAutoSave)
+		{
+			int ret = MessageBox(_T("是否保存当前图片的标注？"), _T("提示"), MB_OKCANCEL);
+			if (ret == IDOK)
+			{
+				//保存
+				bSave = true;
+			}
+		}
+		else
+		{
+			//自动保存
+			bSave = true;
+		}
+	}
+
+	if (bSave)
+	{
+		// 执行保存
+		SaveLabels();
+		//清空
+		mvPolys.clear();
+		mvRoi.clear();
+	}
+
 	mCurrentIndex++;
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
 	LoadImageAndShow();
@@ -398,6 +496,15 @@ void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
 void CLabelMeWinDlg::OnBnClickedBtnSave()
 {
 	// TODO: 保存
+	if (mvPolys.size() > 0)
+	{
+		// 执行保存
+		SaveLabels();
+	}
+	
+	//清空
+	mvPolys.clear();
+	mvRoi.clear();
 }
 
 
@@ -689,4 +796,46 @@ void CLabelMeWinDlg::DrawCurrentPoly(cv::Mat& canvas)
 void CLabelMeWinDlg::OnBnClickedBtnLoadLabel()
 {
 	// TODO: 加载标签文件
+	CString filePath = _T("");
+	BOOL isOpen = TRUE;     //是否打开(否则为保存) 
+	CString defaultDir = _T("./");   //默认打开的文件路径 
+	CString fileName = _T("");         //默认打开的文件名 
+	CString filter = _T("普通文件 (*.txt)|*.txt||");   //文件过虑的类型 
+	CFileDialog openFileDlg(isOpen, defaultDir, fileName, OFN_HIDEREADONLY | OFN_READONLY, filter, NULL);
+	if (openFileDlg.DoModal() == IDOK)
+	{
+		filePath = openFileDlg.GetPathName();
+	}
+	//
+	if (filePath == _T(""))
+	{
+		MessageBox(_T("没有选择文件"));
+		return;
+	}
+	//按行读入
+	std::ifstream ifs;
+	char* p = cstring_to_char(filePath);
+	ifs.open(p, std::ios::in);
+	delete[] p;
+	if (!ifs.is_open())
+	{
+		MessageBox(_T("打开标签文件失败！"));
+		return;
+	}
+	std::string line;
+	while (getline(ifs, line))
+	{
+		msLabels.insert(line);
+	}
+	ifs.close();
+}
+
+
+void CLabelMeWinDlg::OnBnClickedCheckAutosave()
+{
+	// TODO: 自动保存?
+	if (((CButton *)GetDlgItem(IDC_CHECK_AUTOSAVE))->GetCheck() == 1)
+		mbAutoSave = true;
+	else
+		mbAutoSave = false;
 }

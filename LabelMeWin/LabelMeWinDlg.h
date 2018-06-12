@@ -11,6 +11,7 @@
 #include <utility>
 #include <set>
 #include <opencv2/opencv.hpp>
+#include <iguana/json.hpp>
 
 #define MIN_NEIGBOR 5
 #define POINT_CIRCLE_R 3
@@ -18,6 +19,20 @@
 
 #define COLOR_GREEN (cv::Scalar(0,255,0))
 #define COLOR_BLUE (cv::Scalar(255,0,0))
+
+typedef struct _tPtAnno
+{
+	int x;
+	int y;
+}TPtAnno;
+REFLECTION(TPtAnno, x, y);
+
+typedef struct _tImgAnno
+{
+	std::string label;
+	std::vector<TPtAnno> pts;
+}TImgAnno;
+REFLECTION(TImgAnno, label, pts);
 
 
 // CLabelMeWinDlg ¶Ô»°¿ò
@@ -51,6 +66,7 @@ public:
 	std::vector<std::string> mvFiles;
 	int mCurrentIndex;
 	CString mRootDir;
+	bool mbAutoSave;
 
 	//±êÇ©
 	std::set<std::string> msLabels;
@@ -87,6 +103,7 @@ public:
 	//
 	float GetPtDistI2(cv::Point& p1, cv::Point& p2);
 
+	void SaveLabels();
 public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedBtnOpen();
@@ -115,4 +132,5 @@ public:
 	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnBnClickedBtnLoadLabel();
+	afx_msg void OnBnClickedCheckAutosave();
 };
