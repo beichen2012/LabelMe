@@ -83,4 +83,5 @@ public:
 	afx_msg void OnBnClickedBtnCreatePoly();
 	afx_msg void OnBnClickedBtnDeletePoly();
 	afx_msg void OnBnClickedBtnEditPoly();
+	afx_msg void OnNMClickListFiles(NMHDR *pNMHDR, LRESULT *pResult);
 };

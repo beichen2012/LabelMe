@@ -55,6 +55,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_CREATE_POLY, &CLabelMeWinDlg::OnBnClickedBtnCreatePoly)
 	ON_BN_CLICKED(IDC_BTN_DELETE_POLY, &CLabelMeWinDlg::OnBnClickedBtnDeletePoly)
 	ON_BN_CLICKED(IDC_BTN_EDIT_POLY, &CLabelMeWinDlg::OnBnClickedBtnEditPoly)
+	ON_NOTIFY(NM_CLICK, IDC_LIST_FILES, &CLabelMeWinDlg::OnNMClickListFiles)
 END_MESSAGE_MAP()
 
 
@@ -209,6 +210,22 @@ CString CLabelMeWinDlg::SelectFolder()
 	return strFolderPath;
 }
 
+#pragma region 文件列表
+void CLabelMeWinDlg::OnNMClickListFiles(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	*pResult = 0;
+	// TODO: 查询点击了第几行，并加载相应的图片
+	int idx = pNMItemActivate->iItem;
+	if (mvFiles.size() <= idx)
+		return;
+
+	//
+	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[idx].c_str());
+	mCurrentIndex = idx;
+	LoadImageAndShow();
+}
+
 void CLabelMeWinDlg::RefreshFileLists()
 {
 	mListFiles.DeleteAllItems();
@@ -219,6 +236,7 @@ void CLabelMeWinDlg::RefreshFileLists()
 		mListFiles.SetItemText(i, 2, CString(mvFiles[i].c_str()));
 	}
 }
+#pragma endregion
 
 #pragma region 界面按钮
 void CLabelMeWinDlg::OnBnClickedBtnOpen()
@@ -244,7 +262,8 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	}
 
 	mCurrentFile = filePath;
-
+	mCurrentIndex = 0;
+	mvFiles.clear();
 	//读取文件到内存
 	LoadImageAndShow();
 }
@@ -297,19 +316,50 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 
 	//加载图片
 	LoadImageAndShow();
+	//List 
+	mListFiles.SetFocus();
+	mListFiles.SetItemState(mCurrentIndex, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	mListFiles.EnsureVisible(mCurrentIndex, FALSE);
 }
 
 
 void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 {
 	// TODO: 下一张
+	if (mCurrentIndex == mvFiles.size() - 1)
+	{
+		MessageBox(_T("已经是最后一张了"));
+		return;
+	}
+	mCurrentIndex++;
+	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
+	LoadImageAndShow();
+	//List 
+	mListFiles.SetFocus();
+	mListFiles.SetItemState(mCurrentIndex - 1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+	mListFiles.SetItemState(mCurrentIndex, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	mListFiles.EnsureVisible(mCurrentIndex, FALSE);
+
+
 }
 
 
 void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
 {
 	// TODO: 前一张
-
+	if (mCurrentIndex == 0)
+	{
+		MessageBox(_T("已经是第一张了"));
+		return;
+	}
+	mCurrentIndex--;
+	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
+	LoadImageAndShow();
+	//List 
+	mListFiles.SetFocus();
+	mListFiles.SetItemState(mCurrentIndex + 1, 0, LVIS_SELECTED | LVIS_FOCUSED);
+	mListFiles.SetItemState(mCurrentIndex, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+	mListFiles.EnsureVisible(mCurrentIndex, FALSE);
 }
 
 void CLabelMeWinDlg::OnBnClickedBtnSave()
@@ -472,3 +522,4 @@ void CLabelMeWinDlg::DrawCImageCenter(ATL::CImage & image, CWnd * pwnd, CRect & 
 }
 
 #pragma endregion
+
