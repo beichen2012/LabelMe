@@ -3,7 +3,8 @@
 //
 
 #pragma once
-
+#include "afxwin.h"
+#include "BtnST.h"
 
 // CLabelMeWinDlg ¶Ô»°¿ò
 class CLabelMeWinDlg : public CDialogEx
@@ -30,4 +31,16 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnBnClickedOk();
+	afx_msg void OnBnClickedCancel();
+	afx_msg void OnBnClickedBtnOpen();
+	CButtonST mBtnOpen;
+	CButtonST mBtnOpenDir;
+	CButtonST mBtnNextImage;
+	CButtonST mBtnPrevImage;
+	CButtonST mBtnSave;
+	CButtonST mBtnCreatePoly;
+	CButtonST mBtnDeletePoly;
+	CButtonST mBtnEditPoly;
 };

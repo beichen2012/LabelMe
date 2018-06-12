@@ -19,17 +19,27 @@
 CLabelMeWinDlg::CLabelMeWinDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_LABELMEWIN_DIALOG, pParent)
 {
-	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	m_hIcon = AfxGetApp()->LoadIcon(IDI_FRAME);
 }
 
 void CLabelMeWinDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_BTN_OPEN, mBtnOpen);
+	DDX_Control(pDX, IDC_BTN_OPEN_DIR, mBtnOpenDir);
+	DDX_Control(pDX, IDC_BTN_NEXT_IMAGE, mBtnNextImage);
+	DDX_Control(pDX, IDC_BTN_PREV_IMAGE, mBtnPrevImage);
+	DDX_Control(pDX, IDC_BTN_SAVE, mBtnSave);
+	DDX_Control(pDX, IDC_BTN_CREATE_POLY, mBtnCreatePoly);
+	DDX_Control(pDX, IDC_BTN_DELETE_POLY, mBtnDeletePoly);
+	DDX_Control(pDX, IDC_BTN_EDIT_POLY, mBtnEditPoly);
 }
 
 BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDOK, &CLabelMeWinDlg::OnBnClickedOk)
+	ON_BN_CLICKED(IDC_BTN_OPEN, &CLabelMeWinDlg::OnBnClickedBtnOpen)
 END_MESSAGE_MAP()
 
 
@@ -45,6 +55,38 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 设置小图标
 
 	// TODO: 在此添加额外的初始化代码
+
+	mBtnOpen.SetIcon(IDI_ICON_FILE);
+	mBtnOpen.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnOpen.SetTooltipText(_T("打开一个图片"));
+
+	mBtnOpenDir.SetIcon(IDI_ICON_FILE);
+	mBtnOpenDir.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnOpenDir.SetTooltipText(_T("打开一个目录"));
+
+	mBtnNextImage.SetIcon(IDI_ICON_NEXT);
+	mBtnNextImage.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnNextImage.SetTooltipText(_T("下一张图片"));
+
+	mBtnPrevImage.SetIcon(IDI_ICON_PREV);
+	mBtnPrevImage.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnPrevImage.SetTooltipText(_T("上一张图片"));
+
+	mBtnSave.SetIcon(IDI_ICON_SAVE);
+	mBtnSave.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnSave.SetTooltipText(_T("保存标注"));
+
+	mBtnCreatePoly.SetIcon(IDI_ICON_OBJECTS);
+	mBtnCreatePoly.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnCreatePoly.SetTooltipText(_T("创建多边形"));
+
+	mBtnDeletePoly.SetIcon(IDI_ICON_CANCEL);
+	mBtnDeletePoly.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnDeletePoly.SetTooltipText(_T("删除多边形"));
+
+	mBtnEditPoly.SetIcon(IDI_ICON_COLOR_LINE);
+	mBtnEditPoly.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnEditPoly.SetTooltipText(_T("编辑多边形"));
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -85,3 +127,18 @@ HCURSOR CLabelMeWinDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void CLabelMeWinDlg::OnBnClickedOk()
+{
+	// TODO: 这里屏蔽掉enter
+	return;
+	CDialogEx::OnOK();
+}
+
+
+
+void CLabelMeWinDlg::OnBnClickedBtnOpen()
+{
+	// TODO: 在此添加控件通知处理程序代码
+}

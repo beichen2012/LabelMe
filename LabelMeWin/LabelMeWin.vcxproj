@@ -90,7 +90,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
@@ -136,7 +136,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
@@ -185,6 +185,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BtnST.h" />
     <ClInclude Include="LabelMeWin.h" />
     <ClInclude Include="LabelMeWinDlg.h" />
     <ClInclude Include="Resource.h" />
@@ -192,6 +193,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BtnST.cpp" />
     <ClCompile Include="LabelMeWin.cpp" />
     <ClCompile Include="LabelMeWinDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
@@ -208,9 +210,25 @@
     <None Include="res\LabelMeWin.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\cancel.ico" />
+    <Image Include="res\color-line.ico" />
+    <Image Include="res\icon.ico" />
+    <Image Include="res\icon1.ico" />
     <Image Include="res\LabelMeWin.ico" />
+    <Image Include="res\next.ico" />
+    <Image Include="res\objects.ico" />
+    <Image Include="res\open.ico" />
+    <Image Include="res\open.png" />
+    <Image Include="res\open64.ico" />
+    <Image Include="res\prev.ico" />
+    <Image Include="res\save.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="LabelMeWin.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

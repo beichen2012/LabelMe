@@ -33,6 +33,9 @@
     <ClInclude Include="Resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="BtnST.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LabelMeWin.cpp">
@@ -42,6 +45,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BtnST.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -57,6 +63,39 @@
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\LabelMeWin.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\open.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\open64.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\open.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\next.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\prev.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\save.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\icon1.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\objects.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\cancel.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\color-line.ico">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>
