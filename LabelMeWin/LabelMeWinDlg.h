@@ -8,7 +8,17 @@
 #include "afxcmn.h"
 #include <vector>
 #include <string>
+#include <utility>
+#include <set>
 #include <opencv2/opencv.hpp>
+
+#define MIN_NEIGBOR 5
+#define POINT_CIRCLE_R 3
+#define POINT_LINE_R 1
+
+#define COLOR_GREEN (cv::Scalar(0,255,0))
+#define COLOR_BLUE (cv::Scalar(255,0,0))
+
 
 // CLabelMeWinDlg 对话框
 class CLabelMeWinDlg : public CDialogEx
@@ -36,10 +46,14 @@ protected:
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
 public:
+	//文件路径
 	CString mCurrentFile;
 	std::vector<std::string> mvFiles;
 	int mCurrentIndex;
 	CString mRootDir;
+
+	//标签
+	std::set<std::string> msLabels;
 	
 
 	//图像显示
@@ -48,10 +62,18 @@ public:
 	CImage mCimg;
 	CRect mRectShow;
 
+	//
+	bool mbLButtonDown;
+	cv::Point mptStart;
+	cv::Point mptEnd;
+	std::vector<cv::Point> mvRoi;
+	std::vector<std::pair<std::string, std::vector<cv::Point>>> mvPolys;
+
 public:
 
 	CString SelectFolder();
 	void RefreshFileLists();
+	void ItemHighLight(int idx_no, int idx_yes, CListCtrl& list);
 
 	//图片显示
 	void LoadImageAndShow();
@@ -59,6 +81,11 @@ public:
 	void MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id);
 	void DrawCImageCenter(ATL::CImage& image, CWnd* pwnd, CRect& dstRect, COLORREF bkColor = RGB(105, 105, 105));
 	void DrawRect();
+	void DrawPolys(cv::Mat& canvas);
+	void DrawCurrentPoly(cv::Mat& canvas);
+
+	//
+	float GetPtDistI2(cv::Point& p1, cv::Point& p2);
 
 public:
 	afx_msg void OnBnClickedOk();
@@ -84,4 +111,8 @@ public:
 	afx_msg void OnBnClickedBtnDeletePoly();
 	afx_msg void OnBnClickedBtnEditPoly();
 	afx_msg void OnNMClickListFiles(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnLButtonUp(UINT nFlags, CPoint point);
+	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
+	afx_msg void OnBnClickedBtnLoadLabel();
 };

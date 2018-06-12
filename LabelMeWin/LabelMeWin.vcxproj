@@ -189,6 +189,7 @@
   <ItemGroup>
     <ClInclude Include="BrowseDir.h" />
     <ClInclude Include="BtnST.h" />
+    <ClInclude Include="DlgAddedLabel.h" />
     <ClInclude Include="LabelMeWin.h" />
     <ClInclude Include="LabelMeWinDlg.h" />
     <ClInclude Include="Resource.h" />
@@ -198,6 +199,7 @@
   <ItemGroup>
     <ClCompile Include="BrowseDir.cpp" />
     <ClCompile Include="BtnST.cpp" />
+    <ClCompile Include="DlgAddedLabel.cpp" />
     <ClCompile Include="LabelMeWin.cpp" />
     <ClCompile Include="LabelMeWinDlg.cpp" />
     <ClCompile Include="stdafx.cpp">

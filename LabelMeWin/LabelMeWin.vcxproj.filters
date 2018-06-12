@@ -39,6 +39,9 @@
     <ClInclude Include="BrowseDir.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="DlgAddedLabel.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LabelMeWin.cpp">
@@ -54,6 +57,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="BrowseDir.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="DlgAddedLabel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

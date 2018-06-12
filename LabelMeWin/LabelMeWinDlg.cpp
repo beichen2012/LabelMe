@@ -7,6 +7,7 @@
 #include "LabelMeWinDlg.h"
 #include "afxdialogex.h"
 #include "BrowseDir.h"
+#include "DlgAddedLabel.h"
 using namespace cv;
 
 
@@ -56,6 +57,10 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_DELETE_POLY, &CLabelMeWinDlg::OnBnClickedBtnDeletePoly)
 	ON_BN_CLICKED(IDC_BTN_EDIT_POLY, &CLabelMeWinDlg::OnBnClickedBtnEditPoly)
 	ON_NOTIFY(NM_CLICK, IDC_LIST_FILES, &CLabelMeWinDlg::OnNMClickListFiles)
+	ON_WM_LBUTTONDOWN()
+	ON_WM_LBUTTONUP()
+	ON_WM_MOUSEMOVE()
+	ON_BN_CLICKED(IDC_BTN_LOAD_LABEL, &CLabelMeWinDlg::OnBnClickedBtnLoadLabel)
 END_MESSAGE_MAP()
 
 
@@ -112,10 +117,10 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	CRect rect;
 	mListFiles.GetClientRect(rect);
 	mListFiles.SetExtendedStyle(mListFiles.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
-	int lw = rect.Width() / 6;
+	int lw = rect.Width() / 15;
 	mListFiles.InsertColumn(0, _T(""), LVCFMT_LEFT, 0);
-	mListFiles.InsertColumn(1, _T("序号"), LVCFMT_LEFT, lw);
-	mListFiles.InsertColumn(2, _T("名称"), LVCFMT_LEFT, lw * 5);
+	mListFiles.InsertColumn(1, _T("序号"), LVCFMT_LEFT, lw * 3);
+	mListFiles.InsertColumn(2, _T("名称"), LVCFMT_LEFT, lw * 11);
 
 
 	
@@ -160,6 +165,13 @@ HCURSOR CLabelMeWinDlg::OnQueryDragIcon()
 }
 
 
+
+float CLabelMeWinDlg::GetPtDistI2(cv::Point& p1, cv::Point& p2)
+{
+	float dist = (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
+	dist = sqrt(dist);
+	return dist;
+}
 
 void CLabelMeWinDlg::OnBnClickedOk()
 {
@@ -236,6 +248,19 @@ void CLabelMeWinDlg::RefreshFileLists()
 		mListFiles.SetItemText(i, 2, CString(mvFiles[i].c_str()));
 	}
 }
+
+void CLabelMeWinDlg::ItemHighLight(int idx_no, int idx_yes, CListCtrl& list)
+{
+	//List 
+	list.SetFocus();
+	if(idx_no >= 0)
+		list.SetItemState(idx_no, 0, LVIS_SELECTED | LVIS_FOCUSED);
+	if (idx_yes >= 0)
+	{
+		list.SetItemState(idx_yes, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+		list.EnsureVisible(idx_yes, FALSE);
+	}
+}
 #pragma endregion
 
 #pragma region 界面按钮
@@ -263,9 +288,24 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 
 	mCurrentFile = filePath;
 	mCurrentIndex = 0;
-	mvFiles.clear();
+	char dir[4096] = { 0 };
+	char drive[4096] = { 0 };
+	char filename[4096] = { 0 };
+	char ext[4096] = { 0 };
+	char* p = cstring_to_char(mCurrentFile);
+	_splitpath(p, drive, dir, filename, ext);
+	delete[] p;
+
+	//
+	mRootDir = CString(drive) + CString(dir);
+	mvFiles.push_back(std::string(filename) + std::string(ext));
+	mRootDir = mRootDir.Left(mRootDir.GetLength() - 1);
+
 	//读取文件到内存
 	LoadImageAndShow();
+	RefreshFileLists();
+	ItemHighLight(-1, 0, mListFiles);
+	mbLButtonDown = false;
 }
 
 void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
@@ -317,9 +357,8 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	//加载图片
 	LoadImageAndShow();
 	//List 
-	mListFiles.SetFocus();
-	mListFiles.SetItemState(mCurrentIndex, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-	mListFiles.EnsureVisible(mCurrentIndex, FALSE);
+	ItemHighLight(-1, 0, mListFiles);
+	mbLButtonDown = false;
 }
 
 
@@ -335,10 +374,7 @@ void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
 	LoadImageAndShow();
 	//List 
-	mListFiles.SetFocus();
-	mListFiles.SetItemState(mCurrentIndex - 1, 0, LVIS_SELECTED | LVIS_FOCUSED);
-	mListFiles.SetItemState(mCurrentIndex, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-	mListFiles.EnsureVisible(mCurrentIndex, FALSE);
+	ItemHighLight(mCurrentIndex - 1, mCurrentIndex, mListFiles);
 
 
 }
@@ -356,10 +392,7 @@ void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
 	LoadImageAndShow();
 	//List 
-	mListFiles.SetFocus();
-	mListFiles.SetItemState(mCurrentIndex + 1, 0, LVIS_SELECTED | LVIS_FOCUSED);
-	mListFiles.SetItemState(mCurrentIndex, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-	mListFiles.EnsureVisible(mCurrentIndex, FALSE);
+	ItemHighLight(mCurrentIndex + 1, mCurrentIndex, mListFiles);
 }
 
 void CLabelMeWinDlg::OnBnClickedBtnSave()
@@ -523,3 +556,137 @@ void CLabelMeWinDlg::DrawCImageCenter(ATL::CImage & image, CWnd * pwnd, CRect & 
 
 #pragma endregion
 
+
+#pragma region 鼠标事件
+void CLabelMeWinDlg::OnLButtonDown(UINT nFlags, CPoint point)
+{
+	// TODO: 左键按下
+	CRect rect, rectRoi;
+	if (mShow.empty() || mSrc.empty())
+		goto RETURN;
+
+	//判断是否在控件内
+	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	ScreenToClient(rect);
+	//判断是否在控件内
+	rectRoi = mRectShow + POINT{ rect.left, rect.top };
+	if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
+	{
+		goto RETURN;
+	}
+	mbLButtonDown = true;
+RETURN:
+	CDialogEx::OnLButtonDown(nFlags, point);
+}
+
+
+void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: 左键弹起
+	if(!mbLButtonDown)
+		return CDialogEx::OnLButtonUp(nFlags, point);
+
+	//记录下点
+	CRect rect;
+	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	ScreenToClient(rect);
+	//判断是否在控件内
+	CRect rectRoi = mRectShow + POINT{ rect.left, rect.top };
+	if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
+	{
+		return CDialogEx::OnLButtonDown(nFlags, point);;
+	}
+	//
+	mptStart.x = point.x - rectRoi.left;
+	mptStart.y = point.y - rectRoi.top;
+
+	//保存
+	mvRoi.push_back(mptStart);
+	if (mvRoi.size() > 4)
+	{
+		//判断是否闭合
+		auto dist = GetPtDistI2(mptStart, mvRoi[0]);
+		if (dist < MIN_NEIGBOR)
+		{
+			//说明是闭合了
+			//1. 对话框，选择或输入标签
+			std::string label;
+			CDlgAddedLabel* dlg = new CDlgAddedLabel(msLabels);
+			if (dlg->DoModal() == IDOK)
+			{
+				auto txt = dlg->mEditLabel;
+				char* p = cstring_to_char(txt);
+				//
+				msLabels.insert(std::string(p));
+				label = p;
+				delete[] p;
+			}
+			else
+			{
+				return CDialogEx::OnLButtonUp(nFlags, point);;
+			}
+
+			//2. 保存进行下一个
+			auto pa = std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(mvRoi));
+			mvPolys.emplace_back(std::move(pa));
+		}
+	}
+
+
+	
+
+	//画一个小圆
+	Mat tmp = mShow.clone();
+	DrawPolys(tmp);
+	DrawCurrentPoly(tmp);
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+
+	CDialogEx::OnLButtonUp(nFlags, point);
+}
+
+
+void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
+{
+	// TODO: 鼠标移动
+
+	CDialogEx::OnMouseMove(nFlags, point);
+}
+
+void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
+{
+	for (auto& i : mvPolys)
+	{
+		auto& v = i.second;
+		for (int k = 0; k < v.size(); k++)
+		{
+			auto & pt = v[k];
+			circle(canvas, pt, POINT_CIRCLE_R, COLOR_BLUE, -1);
+			if (k == v.size() - 1)
+			{
+				line(canvas, pt, v[0], COLOR_BLUE, POINT_LINE_R);
+			}
+			else
+			{
+				line(canvas, pt, v[k + 1], COLOR_BLUE, POINT_LINE_R);
+			}
+		}
+	}
+}
+void CLabelMeWinDlg::DrawCurrentPoly(cv::Mat& canvas)
+{
+	for (int i = 0; i < mvRoi.size(); i++)
+	{
+		circle(canvas, mvRoi[i], POINT_CIRCLE_R, COLOR_GREEN, -1);
+		if (i != mvRoi.size() - 1)
+			line(canvas, mvRoi[i], mvRoi[i + 1], COLOR_GREEN, POINT_LINE_R);
+	}
+}
+
+#pragma endregion
+
+
+void CLabelMeWinDlg::OnBnClickedBtnLoadLabel()
+{
+	// TODO: 加载标签文件
+}
