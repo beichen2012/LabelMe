@@ -185,6 +185,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BrowseDir.h" />
     <ClInclude Include="BtnST.h" />
     <ClInclude Include="LabelMeWin.h" />
     <ClInclude Include="LabelMeWinDlg.h" />
@@ -193,6 +194,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BrowseDir.cpp" />
     <ClCompile Include="BtnST.cpp" />
     <ClCompile Include="LabelMeWin.cpp" />
     <ClCompile Include="LabelMeWinDlg.cpp" />
@@ -215,6 +217,7 @@
     <Image Include="res\icon.ico" />
     <Image Include="res\icon1.ico" />
     <Image Include="res\LabelMeWin.ico" />
+    <Image Include="res\labels.ico" />
     <Image Include="res\next.ico" />
     <Image Include="res\objects.ico" />
     <Image Include="res\open.ico" />

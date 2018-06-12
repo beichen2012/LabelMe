@@ -6,6 +6,8 @@
 #include "LabelMeWin.h"
 #include "LabelMeWinDlg.h"
 #include "afxdialogex.h"
+#include "BrowseDir.h"
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -33,6 +35,10 @@ void CLabelMeWinDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_BTN_CREATE_POLY, mBtnCreatePoly);
 	DDX_Control(pDX, IDC_BTN_DELETE_POLY, mBtnDeletePoly);
 	DDX_Control(pDX, IDC_BTN_EDIT_POLY, mBtnEditPoly);
+	DDX_Control(pDX, IDC_BTN_LOAD_LABEL, mBtnLoadLabel);
+	DDX_Control(pDX, IDC_LIST_FILES, mListFiles);
+	DDX_Control(pDX, IDC_LIST_POLYS, mListROIs);
+	DDX_Control(pDX, IDC_LIST_LABELS, mListLabels);
 }
 
 BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
@@ -40,6 +46,14 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDOK, &CLabelMeWinDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDC_BTN_OPEN, &CLabelMeWinDlg::OnBnClickedBtnOpen)
+	ON_WM_CTLCOLOR()
+	ON_BN_CLICKED(IDC_BTN_OPEN_DIR, &CLabelMeWinDlg::OnBnClickedBtnOpenDir)
+	ON_BN_CLICKED(IDC_BTN_NEXT_IMAGE, &CLabelMeWinDlg::OnBnClickedBtnNextImage)
+	ON_BN_CLICKED(IDC_BTN_PREV_IMAGE, &CLabelMeWinDlg::OnBnClickedBtnPrevImage)
+	ON_BN_CLICKED(IDC_BTN_SAVE, &CLabelMeWinDlg::OnBnClickedBtnSave)
+	ON_BN_CLICKED(IDC_BTN_CREATE_POLY, &CLabelMeWinDlg::OnBnClickedBtnCreatePoly)
+	ON_BN_CLICKED(IDC_BTN_DELETE_POLY, &CLabelMeWinDlg::OnBnClickedBtnDeletePoly)
+	ON_BN_CLICKED(IDC_BTN_EDIT_POLY, &CLabelMeWinDlg::OnBnClickedBtnEditPoly)
 END_MESSAGE_MAP()
 
 
@@ -87,6 +101,22 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mBtnEditPoly.SetIcon(IDI_ICON_COLOR_LINE);
 	mBtnEditPoly.SetAlign(CButtonST::ST_ALIGN_VERT);
 	mBtnEditPoly.SetTooltipText(_T("编辑多边形"));
+
+	mBtnLoadLabel.SetIcon(IDI_ICON_LABELS);
+	mBtnLoadLabel.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnLoadLabel.SetTooltipText(_T("加载标签文件"));
+
+	//文件列表
+	CRect rect;
+	mListFiles.GetClientRect(rect);
+	mListFiles.SetExtendedStyle(mListFiles.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	int lw = rect.Width() / 6;
+	mListFiles.InsertColumn(0, _T(""), LVCFMT_LEFT, 0);
+	mListFiles.InsertColumn(1, _T("序号"), LVCFMT_LEFT, lw);
+	mListFiles.InsertColumn(2, _T("名称"), LVCFMT_LEFT, lw * 5);
+
+
+	
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -137,8 +167,164 @@ void CLabelMeWinDlg::OnBnClickedOk()
 }
 
 
+HBRUSH CLabelMeWinDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+	HBRUSH hbr = CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
+
+	// TODO:  List 控件背景
+
+	// TODO:  如果默认的不是所需画笔，则返回另一个画笔
+	return hbr;
+}
 
 void CLabelMeWinDlg::OnBnClickedBtnOpen()
 {
-	// TODO: 在此添加控件通知处理程序代码
+	// TODO: 打开文件对话框
+	//1.
+	//打开文件
+	CString filePath = _T("");
+	BOOL isOpen = TRUE;     //是否打开(否则为保存) 
+	CString defaultDir = _T("./");   //默认打开的文件路径 
+	CString fileName = _T("");         //默认打开的文件名 
+	CString filter = _T("图像 (*.bmp; *.jpg; *.png; *.tiff)|*.bmp;*.jpg;*.png;*.tiff||");   //文件过虑的类型 
+	CFileDialog openFileDlg(isOpen, defaultDir, fileName, OFN_HIDEREADONLY | OFN_READONLY, filter, NULL);
+	if (openFileDlg.DoModal() == IDOK)
+	{
+		filePath = openFileDlg.GetPathName();
+	}
+	//
+	if (filePath == _T(""))
+	{
+		MessageBox(_T("没有选择文件"));
+		return;
+	}
+
+	mCurrentFile = filePath;
+
+	//读取文件到内存
+}
+CString CLabelMeWinDlg::SelectFolder()
+{
+	TCHAR           szFolderPath[MAX_PATH] = { 0 };
+	CString         strFolderPath = _T("");
+
+	BROWSEINFO      sInfo;
+	::ZeroMemory(&sInfo, sizeof(BROWSEINFO));
+	sInfo.pidlRoot = 0;
+	sInfo.lpszTitle = _T("请选择一个文件夹：");
+	sInfo.ulFlags = BIF_DONTGOBELOWDOMAIN | BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE | BIF_EDITBOX;
+	sInfo.lpfn = NULL;
+
+	// 显示文件夹选择对话框  
+	LPITEMIDLIST lpidlBrowse = ::SHBrowseForFolder(&sInfo);
+	if (lpidlBrowse != NULL)
+	{
+		// 取得文件夹名  
+		if (::SHGetPathFromIDList(lpidlBrowse, szFolderPath))
+		{
+			strFolderPath = szFolderPath;
+		}
+	}
+	if (lpidlBrowse != NULL)
+	{
+		::CoTaskMemFree(lpidlBrowse);
+	}
+
+	return strFolderPath;
+}
+
+void CLabelMeWinDlg::RefreshFileLists()
+{
+	mListFiles.DeleteAllItems();
+	for (int i = 0; i < mvFiles.size(); i++)
+	{
+		mListFiles.InsertItem(i, _T(""));
+		mListFiles.SetItemText(i, 1, CString(std::to_string(i).c_str()));
+		mListFiles.SetItemText(i, 2, CString(mvFiles[i].c_str()));
+	}
+}
+
+void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
+{
+	// TODO: 选择目录
+	mRootDir = SelectFolder();
+	if (mRootDir == _T(""))
+	{
+		MessageBox(_T("没有选择文件夹！"));
+		return;
+	}
+	//查询目录下所有的图片
+	std::string strRoot;
+	CBrowseDir br;
+	char* pr = cstring_to_char(mRootDir);
+	br.SetInitDir(pr);
+	strRoot = pr;
+	delete[] pr;
+
+	auto r1 = br.BeginBrowseFilenames("*.jpg");
+	auto r2 = br.BeginBrowseFilenames("*.bmp");
+	auto r3 = br.BeginBrowseFilenames("*.tiff");
+	auto r4 = br.BeginBrowseFilenames("*.png");
+
+	mvFiles.clear();
+	mvFiles.insert(mvFiles.end(), r1.begin(), r1.end());
+	mvFiles.insert(mvFiles.end(), r2.begin(), r2.end());
+	mvFiles.insert(mvFiles.end(), r3.begin(), r3.end());
+	mvFiles.insert(mvFiles.end(), r4.begin(), r4.end());
+
+	//
+	if (mvFiles.size() <= 0)
+	{
+		MessageBox(_T("选择的文件夹中没有图片文件！"));
+		return;
+	}
+	mCurrentFile = CString(mvFiles[0].c_str());
+	mCurrentIndex = 0;
+	//把mvFiles里面的路径，去掉根目录
+	for (auto& i : mvFiles)
+	{
+		auto j = i.substr(strRoot.length() + 1);
+		i = j;
+	}
+
+	//列表显示图片
+	RefreshFileLists();
+
+	//加载图片
+}
+
+
+void CLabelMeWinDlg::OnBnClickedBtnNextImage()
+{
+	// TODO: 下一张
+}
+
+
+void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
+{
+	// TODO: 前一张
+
+}
+
+void CLabelMeWinDlg::OnBnClickedBtnSave()
+{
+	// TODO: 保存
+}
+
+
+void CLabelMeWinDlg::OnBnClickedBtnCreatePoly()
+{
+	// TODO: 创建多边形
+}
+
+
+void CLabelMeWinDlg::OnBnClickedBtnDeletePoly()
+{
+	// TODO: 删除多边形
+}
+
+
+void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
+{
+	// TODO: 编辑多边形
 }

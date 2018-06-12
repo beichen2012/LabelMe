@@ -36,6 +36,9 @@
     <ClInclude Include="BtnST.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="BrowseDir.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LabelMeWin.cpp">
@@ -48,6 +51,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="BtnST.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BrowseDir.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -96,6 +102,9 @@
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="res\color-line.ico">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\labels.ico">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>

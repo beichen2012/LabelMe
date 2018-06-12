@@ -52,3 +52,6 @@
 #endif
 
 
+
+//CString to char*£¬UNICODEÏÂ£»
+char* cstring_to_char(CString& str);
