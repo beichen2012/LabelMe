@@ -7,6 +7,7 @@
 #include "LabelMeWinDlg.h"
 #include "afxdialogex.h"
 #include "BrowseDir.h"
+using namespace cv;
 
 
 #ifdef _DEBUG
@@ -177,32 +178,7 @@ HBRUSH CLabelMeWinDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	return hbr;
 }
 
-void CLabelMeWinDlg::OnBnClickedBtnOpen()
-{
-	// TODO: 打开文件对话框
-	//1.
-	//打开文件
-	CString filePath = _T("");
-	BOOL isOpen = TRUE;     //是否打开(否则为保存) 
-	CString defaultDir = _T("./");   //默认打开的文件路径 
-	CString fileName = _T("");         //默认打开的文件名 
-	CString filter = _T("图像 (*.bmp; *.jpg; *.png; *.tiff)|*.bmp;*.jpg;*.png;*.tiff||");   //文件过虑的类型 
-	CFileDialog openFileDlg(isOpen, defaultDir, fileName, OFN_HIDEREADONLY | OFN_READONLY, filter, NULL);
-	if (openFileDlg.DoModal() == IDOK)
-	{
-		filePath = openFileDlg.GetPathName();
-	}
-	//
-	if (filePath == _T(""))
-	{
-		MessageBox(_T("没有选择文件"));
-		return;
-	}
 
-	mCurrentFile = filePath;
-
-	//读取文件到内存
-}
 CString CLabelMeWinDlg::SelectFolder()
 {
 	TCHAR           szFolderPath[MAX_PATH] = { 0 };
@@ -242,6 +218,35 @@ void CLabelMeWinDlg::RefreshFileLists()
 		mListFiles.SetItemText(i, 1, CString(std::to_string(i).c_str()));
 		mListFiles.SetItemText(i, 2, CString(mvFiles[i].c_str()));
 	}
+}
+
+#pragma region 界面按钮
+void CLabelMeWinDlg::OnBnClickedBtnOpen()
+{
+	// TODO: 打开文件对话框
+	//1.
+	//打开文件
+	CString filePath = _T("");
+	BOOL isOpen = TRUE;     //是否打开(否则为保存) 
+	CString defaultDir = _T("./");   //默认打开的文件路径 
+	CString fileName = _T("");         //默认打开的文件名 
+	CString filter = _T("图像 (*.bmp; *.jpg; *.png; *.tiff)|*.bmp;*.jpg;*.png;*.tiff||");   //文件过虑的类型 
+	CFileDialog openFileDlg(isOpen, defaultDir, fileName, OFN_HIDEREADONLY | OFN_READONLY, filter, NULL);
+	if (openFileDlg.DoModal() == IDOK)
+	{
+		filePath = openFileDlg.GetPathName();
+	}
+	//
+	if (filePath == _T(""))
+	{
+		MessageBox(_T("没有选择文件"));
+		return;
+	}
+
+	mCurrentFile = filePath;
+
+	//读取文件到内存
+	LoadImageAndShow();
 }
 
 void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
@@ -291,6 +296,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	RefreshFileLists();
 
 	//加载图片
+	LoadImageAndShow();
 }
 
 
@@ -328,3 +334,141 @@ void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 {
 	// TODO: 编辑多边形
 }
+#pragma endregion
+
+#pragma region 图像显示
+void CLabelMeWinDlg::LoadImageAndShow()
+{
+	auto* p = cstring_to_char(mCurrentFile);
+	mSrc = imread(p);
+	if (mSrc.empty())
+	{
+		MessageBox(_T("无法读取文件：\r\n") + mCurrentFile);
+		return;
+	}
+
+	//显示
+	MakeShowingImage(mSrc, mShow, IDC_PIC);
+	ConvertMatToCImage(mShow, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+}
+
+void CLabelMeWinDlg::ConvertMatToCImage(cv::Mat & src, CImage & cimg)
+{
+	void* data = src.data;
+	int width = src.cols;
+	int height = src.rows;
+	int channels = src.channels();
+	int step = src.step1();
+	if (data == nullptr)
+		return;
+	if (cimg.IsNull())
+		cimg.Create(width, height, 8 * channels);
+	else if (cimg.GetWidth() != width ||
+		cimg.GetHeight() != height ||
+		cimg.GetBPP() / 8 != channels)
+	{
+		cimg.Destroy();
+		cimg.Create(width, height, 8 * channels);
+	}
+	unsigned char* ps;
+	unsigned char* pd = (unsigned char*)data;
+	unsigned char* pimg = (unsigned char*)cimg.GetBits(); //获取CImage的像素存贮区的指针 
+	int cimg_step = cimg.GetPitch();//每行的字节数,注意这个返回值有正有负
+
+									// 如果是1个通道的图像(灰度图像) DIB格式才需要对调色板设置   
+									// CImage中内置了调色板，我们要对他进行赋值： 
+	if (1 == channels)
+	{
+		RGBQUAD* ColorTable;
+		int MaxColors = 256;
+		//这里可以通过CI.GetMaxColorTableEntries()得到大小(如果你是CI.Load读入图像的话)   
+		ColorTable = new RGBQUAD[MaxColors];
+		cimg.GetColorTable(0, MaxColors, ColorTable);//这里是取得指针   
+		for (int i = 0; i< MaxColors; i++)
+		{
+			ColorTable[i].rgbBlue = (BYTE)i;
+			//BYTE和uchar一回事，但MFC中都用它   
+			ColorTable[i].rgbGreen = (BYTE)i;
+			ColorTable[i].rgbRed = (BYTE)i;
+		}
+		cimg.SetColorTable(0, MaxColors, ColorTable);
+		delete[]ColorTable;
+	}
+	for (int y = 0; y < height; y++)
+	{
+		ps = pd + y * step;
+		for (int x = 0; x < width; x++)
+		{
+			if (1 == channels)
+			{
+				*(pimg + y * cimg_step + x) = ps[x];
+			}
+			else if (3 == channels)
+			{
+				*(pimg + y* cimg_step + x * 3 + 0) = ps[x * 3];
+				*(pimg + y* cimg_step + x * 3 + 1) = ps[x * 3 + 1];
+				*(pimg + y* cimg_step + x * 3 + 2) = ps[x * 3 + 2];
+			}
+		}
+	}
+}
+
+void CLabelMeWinDlg::MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id)
+{
+	// 缩放图片
+	if (src.empty())
+		return;
+	CWnd* pwnd = GetDlgItem(id);
+	CRect rect;
+	pwnd->GetClientRect(rect);
+
+	int h, w;
+	float ratio_h = src.rows * 1.0 / rect.Height();
+	float ratio_w = src.cols * 1.0 / rect.Width();
+	if (ratio_h > ratio_w)
+	{
+		//按H的压缩比例计算
+		h = rect.bottom;
+		w = src.cols / ratio_h;
+	}
+	else
+	{
+		w = rect.right;
+		h = src.rows / ratio_w;
+	}
+	resize(src, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
+	if (dst.channels() == 1)
+		cvtColor(dst, dst, COLOR_GRAY2BGR);
+}
+
+void CLabelMeWinDlg::DrawCImageCenter(ATL::CImage & image, CWnd * pwnd, CRect & dstRect, COLORREF bkColor)
+{
+	if (image.IsNull())
+		return;
+	CRect rect;
+	pwnd->GetClientRect(&rect);
+	int img_width = image.GetWidth();
+	int img_height = image.GetHeight();
+	//计算水平点
+	int cx0 = (rect.right - img_width) / 2;
+	int cy0 = (rect.bottom - img_height) / 2;
+	CClientDC dc(pwnd);
+	HDC hdc = dc.GetSafeHdc();
+	SetStretchBltMode(hdc, HALFTONE);
+	SetBrushOrgEx(hdc, 0, 0, NULL);
+	dstRect = rect;
+	if (cx0 >= 0 && cy0 >= 0)
+	{
+		dstRect.left = cx0;
+		dstRect.top = cy0;
+		dstRect.right = cx0 + img_width;
+		dstRect.bottom = cy0 + img_height;
+	}
+	//填充背景色
+	FillRect(hdc, &rect, CBrush(bkColor));
+	image.Draw(hdc, dstRect, CRect(0, 0, image.GetWidth(), image.GetHeight()));
+	return;
+}
+
+#pragma endregion

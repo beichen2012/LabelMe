@@ -8,7 +8,7 @@
 #include "afxcmn.h"
 #include <vector>
 #include <string>
-#include <regex>
+#include <opencv2/opencv.hpp>
 
 // CLabelMeWinDlg ∂‘ª∞øÚ
 class CLabelMeWinDlg : public CDialogEx
@@ -43,11 +43,22 @@ public:
 	
 
 	//ÕºœÒœ‘ æ
+	cv::Mat mSrc;
+	cv::Mat mShow;
+	CImage mCimg;
+	CRect mRectShow;
 
 public:
 
 	CString SelectFolder();
 	void RefreshFileLists();
+
+	//Õº∆¨œ‘ æ
+	void LoadImageAndShow();
+	void ConvertMatToCImage(cv::Mat & src, CImage & cimg);
+	void MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id);
+	void DrawCImageCenter(ATL::CImage& image, CWnd* pwnd, CRect& dstRect, COLORREF bkColor = RGB(105, 105, 105));
+	void DrawRect();
 
 public:
 	afx_msg void OnBnClickedOk();

@@ -19,3 +19,15 @@ char* cstring_to_char(CString& str)
 
 	return pFileName;
 }
+
+#ifdef _DEBUG
+#pragma comment(lib, "opencv_core341d.lib")
+#pragma comment(lib, "opencv_imgcodecs341d.lib")
+#pragma comment(lib, "opencv_imgproc341d.lib")
+#pragma comment(lib, "opencv_highgui341d.lib")
+#else
+#pragma comment(lib, "opencv_core341.lib")
+#pragma comment(lib, "opencv_imgcodecs341.lib")
+#pragma comment(lib, "opencv_imgproc341.lib")
+#pragma comment(lib, "opencv_highgui341.lib")
+#endif
