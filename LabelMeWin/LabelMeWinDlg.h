@@ -19,6 +19,7 @@
 
 #define COLOR_GREEN (cv::Scalar(0,255,0))
 #define COLOR_BLUE (cv::Scalar(255,0,0))
+#define COLOR_RED (cv::Scalar(0,0,255))
 
 typedef struct _tPtAnno
 {
@@ -71,7 +72,6 @@ public:
 	//标签
 	std::set<std::string> msLabels;
 	
-
 	//图像显示
 	cv::Mat mSrc;
 	cv::Mat mShow;
@@ -84,11 +84,18 @@ public:
 	cv::Point mptEnd;
 	std::vector<cv::Point> mvRoi;
 	std::vector<std::pair<std::string, std::vector<cv::Point>>> mvPolys;
+	int mCurrentPolyIdx;
+
+	int mnCreateOrEdit; //0 for create ; 1 for edit
 
 public:
 
 	CString SelectFolder();
+	//查找当前路径下的文件是否有标注文件
+	void FindCurrentLabels();
 	void RefreshFileLists();
+	void RefreshLabelLists();
+	void RefreshROILists();
 	void ItemHighLight(int idx_no, int idx_yes, CListCtrl& list);
 
 	//图片显示
@@ -96,7 +103,6 @@ public:
 	void ConvertMatToCImage(cv::Mat & src, CImage & cimg);
 	void MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id);
 	void DrawCImageCenter(ATL::CImage& image, CWnd* pwnd, CRect& dstRect, COLORREF bkColor = RGB(105, 105, 105));
-	void DrawRect();
 	void DrawPolys(cv::Mat& canvas);
 	void DrawCurrentPoly(cv::Mat& canvas);
 
@@ -133,4 +139,5 @@ public:
 	afx_msg void OnMouseMove(UINT nFlags, CPoint point);
 	afx_msg void OnBnClickedBtnLoadLabel();
 	afx_msg void OnBnClickedCheckAutosave();
+	afx_msg void OnNMClickListPolys(NMHDR *pNMHDR, LRESULT *pResult);
 };

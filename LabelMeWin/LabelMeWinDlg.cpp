@@ -9,6 +9,7 @@
 #include "BrowseDir.h"
 #include "DlgAddedLabel.h"
 #include <fstream>
+#include <rapidjson\document.h>
 using namespace cv;
 
 
@@ -25,6 +26,7 @@ CLabelMeWinDlg::CLabelMeWinDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_LABELMEWIN_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDI_FRAME);
+	mCurrentPolyIdx = -1;
 }
 
 void CLabelMeWinDlg::DoDataExchange(CDataExchange* pDX)
@@ -63,6 +65,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_WM_MOUSEMOVE()
 	ON_BN_CLICKED(IDC_BTN_LOAD_LABEL, &CLabelMeWinDlg::OnBnClickedBtnLoadLabel)
 	ON_BN_CLICKED(IDC_CHECK_AUTOSAVE, &CLabelMeWinDlg::OnBnClickedCheckAutosave)
+	ON_NOTIFY(NM_CLICK, IDC_LIST_POLYS, &CLabelMeWinDlg::OnNMClickListPolys)
 END_MESSAGE_MAP()
 
 
@@ -124,11 +127,30 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mListFiles.InsertColumn(1, _T("序号"), LVCFMT_LEFT, lw * 3);
 	mListFiles.InsertColumn(2, _T("名称"), LVCFMT_LEFT, lw * 11);
 
+	//标签列表
+	mListLabels.GetClientRect(rect);
+	mListLabels.SetExtendedStyle(mListFiles.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	lw = rect.Width() / 15;
+	mListLabels.InsertColumn(0, _T(""), LVCFMT_LEFT, 0);
+	mListLabels.InsertColumn(1, _T("序号"), LVCFMT_LEFT, lw * 3);
+	mListLabels.InsertColumn(2, _T("名称"), LVCFMT_LEFT, lw * 11);
+
+	//当前标签列表
+	mListROIs.GetClientRect(rect);
+	mListROIs.SetExtendedStyle(mListFiles.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	lw = rect.Width() / 15;
+	mListROIs.InsertColumn(0, _T(""), LVCFMT_LEFT, 0);
+	mListROIs.InsertColumn(1, _T("序号"), LVCFMT_LEFT, lw * 3);
+	mListROIs.InsertColumn(2, _T("标签"), LVCFMT_LEFT, lw * 11);
 
 	//自动保存
 	mbAutoSave = true;
 	((CButton *)GetDlgItem(IDC_CHECK_AUTOSAVE))->SetCheck(1);
 
+	mnCreateOrEdit = 0;
+	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(TRUE);
 	
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -307,6 +329,69 @@ void CLabelMeWinDlg::OnNMClickListFiles(NMHDR *pNMHDR, LRESULT *pResult)
 	LoadImageAndShow();
 }
 
+void CLabelMeWinDlg::FindCurrentLabels()
+{
+	if (mCurrentFile.IsEmpty())
+		return;
+	char drive[4096] = { 0 };
+	char dir[4096] = { 0 };
+	char filename[4096] = { 0 };
+	char* p = cstring_to_char(mCurrentFile);
+	_splitpath(p, drive, dir, filename, NULL);
+	delete[] p;
+
+	std::string fn = std::string(drive) + dir + filename + ".json";
+
+	//load json
+	mvPolys.clear();
+	using namespace rapidjson;
+	Document d;
+	char* pd = ReadWholeFile(fn.c_str());
+	if (pd == NULL)
+		return;
+	if (d.Parse(pd).HasParseError())
+	{
+		delete[] pd;
+		return;
+	}
+	delete[] pd;
+	//parse
+	auto b = d.IsArray();
+	Value& v = d;
+	for (SizeType i = 0; i < v.Size(); i++)
+	{
+		//std::pair<std::string, std::vector<cv::Point>> roi;
+		std::string label;
+		std::vector<cv::Point> pts;
+		auto& json_ia = v[i];
+		label = json_ia["label"].GetString();
+		auto& cell = json_ia["pts"].GetArray();
+		for (SizeType j = 0; j < cell.Size(); j++)
+		{
+			int x = cell[j]["x"].GetInt();
+			int y = cell[j]["y"].GetInt();
+			pts.push_back({ x,y });
+		}
+		mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(pts)));
+	}
+
+	// 标签
+	for (auto& i : mvPolys)
+	{
+		msLabels.insert(i.first);
+	}
+
+	//refresh list
+	RefreshLabelLists();
+	RefreshROILists();
+
+	//显示 
+	Mat tmp = mShow.clone();
+	DrawPolys(tmp);
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+}
+
 void CLabelMeWinDlg::RefreshFileLists()
 {
 	mListFiles.DeleteAllItems();
@@ -315,6 +400,32 @@ void CLabelMeWinDlg::RefreshFileLists()
 		mListFiles.InsertItem(i, _T(""));
 		mListFiles.SetItemText(i, 1, CString(std::to_string(i).c_str()));
 		mListFiles.SetItemText(i, 2, CString(mvFiles[i].c_str()));
+	}
+}
+
+void CLabelMeWinDlg::RefreshLabelLists()
+{
+	mListLabels.DeleteAllItems();
+	int i = 0;
+	for (auto& ele : msLabels)
+	{
+		mListLabels.InsertItem(i, _T(""));
+		mListLabels.SetItemText(i, 1, CString(std::to_string(i).c_str()));
+		mListLabels.SetItemText(i, 2, CString(ele.c_str()));
+		i++;
+	}
+}
+
+void CLabelMeWinDlg::RefreshROILists()
+{
+	mListROIs.DeleteAllItems();
+	int i = 0;
+	for (auto& ele : mvPolys)
+	{
+		mListROIs.InsertItem(i, _T(""));
+		mListROIs.SetItemText(i, 1, CString(std::to_string(i).c_str()));
+		mListROIs.SetItemText(i, 2, CString(ele.first.c_str()));
+		i++;
 	}
 }
 
@@ -373,8 +484,14 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	//读取文件到内存
 	LoadImageAndShow();
 	RefreshFileLists();
+	mvPolys.clear();
+	mvRoi.clear();
+	RefreshROILists();
 	ItemHighLight(-1, 0, mListFiles);
 	mbLButtonDown = false;
+
+	//查找是否有本文件的标注文件，读入并显示
+	FindCurrentLabels();
 }
 
 void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
@@ -422,9 +539,13 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 
 	//列表显示图片
 	RefreshFileLists();
+	mvPolys.clear();
+	mvRoi.clear();
+	RefreshROILists();
 
 	//加载图片
 	LoadImageAndShow();
+	FindCurrentLabels();
 	//List 
 	ItemHighLight(-1, 0, mListFiles);
 	mbLButtonDown = false;
@@ -463,14 +584,16 @@ void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 	{
 		// 执行保存
 		SaveLabels();
-		//清空
-		mvPolys.clear();
-		mvRoi.clear();
 	}
+	//清空
+	mvPolys.clear();
+	mvRoi.clear();
+	RefreshROILists();
 
 	mCurrentIndex++;
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
 	LoadImageAndShow();
+	FindCurrentLabels();
 	//List 
 	ItemHighLight(mCurrentIndex - 1, mCurrentIndex, mListFiles);
 
@@ -486,9 +609,40 @@ void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
 		MessageBox(_T("已经是第一张了"));
 		return;
 	}
+	//保存
+	bool bSave = false;
+	if (mvPolys.size() != 0)
+	{
+		if (!mbAutoSave)
+		{
+			int ret = MessageBox(_T("是否保存当前图片的标注？"), _T("提示"), MB_OKCANCEL);
+			if (ret == IDOK)
+			{
+				//保存
+				bSave = true;
+			}
+		}
+		else
+		{
+			//自动保存
+			bSave = true;
+		}
+	}
+
+	if (bSave)
+	{
+		// 执行保存
+		SaveLabels();
+	}
+	//清空
+	mvPolys.clear();
+	mvRoi.clear();
+	RefreshROILists();
+
 	mCurrentIndex--;
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
 	LoadImageAndShow();
+	FindCurrentLabels();
 	//List 
 	ItemHighLight(mCurrentIndex + 1, mCurrentIndex, mListFiles);
 }
@@ -501,28 +655,47 @@ void CLabelMeWinDlg::OnBnClickedBtnSave()
 		// 执行保存
 		SaveLabels();
 	}
-	
-	//清空
-	mvPolys.clear();
-	mvRoi.clear();
 }
 
 
 void CLabelMeWinDlg::OnBnClickedBtnCreatePoly()
 {
 	// TODO: 创建多边形
+	mnCreateOrEdit = 0;
+	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(TRUE);
 }
 
 
 void CLabelMeWinDlg::OnBnClickedBtnDeletePoly()
 {
 	// TODO: 删除多边形
+	if (mCurrentPolyIdx < 0)
+		return;
+	if (mCurrentPolyIdx >= mvPolys.size())
+		return;
+
+	//
+	mvPolys.erase(mvPolys.begin() + mCurrentPolyIdx);
+	RefreshROILists();
+
+	Mat tmp = mShow.clone();
+	DrawCurrentPoly(tmp);
+	DrawPolys(tmp);
+
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
 
 void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 {
 	// TODO: 编辑多边形
+	mnCreateOrEdit = 1;
+	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(TRUE);
+	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(TRUE);
+	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(FALSE);
 }
 #pragma endregion
 
@@ -736,6 +909,9 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			//2. 保存进行下一个
 			auto pa = std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(mvRoi));
 			mvPolys.emplace_back(std::move(pa));
+			//3. 刷新标签列表
+			RefreshLabelLists();
+			RefreshROILists();
 		}
 	}
 
@@ -828,6 +1004,9 @@ void CLabelMeWinDlg::OnBnClickedBtnLoadLabel()
 		msLabels.insert(line);
 	}
 	ifs.close();
+
+	//刷新标签列表
+	RefreshLabelLists();
 }
 
 
@@ -838,4 +1017,41 @@ void CLabelMeWinDlg::OnBnClickedCheckAutosave()
 		mbAutoSave = true;
 	else
 		mbAutoSave = false;
+}
+
+
+void CLabelMeWinDlg::OnNMClickListPolys(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	// TODO: 红色显示当前选中的行
+	*pResult = 0;
+
+	//
+	int index = pNMItemActivate->iItem;
+	if (index > mvPolys.size() - 1)
+		return;
+	mCurrentPolyIdx = index;
+	//
+	Mat tmp = mShow.clone();
+	DrawCurrentPoly(tmp);
+	DrawPolys(tmp );
+	auto& v = mvPolys[index].second;
+
+	for (int k = 0; k < v.size(); k++)
+	{
+		auto & pt = v[k];
+		circle(tmp, pt, POINT_CIRCLE_R, COLOR_RED, -1);
+		if (k == v.size() - 1)
+		{
+			line(tmp, pt, v[0], COLOR_RED, POINT_LINE_R);
+		}
+		else
+		{
+			line(tmp, pt, v[k + 1], COLOR_RED, POINT_LINE_R);
+		}
+	}
+
+	//
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }

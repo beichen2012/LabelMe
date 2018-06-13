@@ -20,11 +20,29 @@ char* cstring_to_char(CString& str)
 	return pFileName;
 }
 
+char* ReadWholeFile(const char* path)
+{
+	FILE *pFile = fopen(path, "r");
+	if (pFile == NULL)
+		return nullptr;
+	char *pBuf;
+	fseek(pFile, 0, SEEK_END);
+	int len = ftell(pFile);
+	pBuf = new char[len + 1];
+	memset(pBuf, 0, len + 1);
+	rewind(pFile);
+	fread(pBuf, 1, len, pFile);
+	pBuf[len] = 0;
+	fclose(pFile);
+	return pBuf;
+}
+
+
 #ifdef _DEBUG
-#pragma comment(lib, "opencv_core341d.lib")
-#pragma comment(lib, "opencv_imgcodecs341d.lib")
-#pragma comment(lib, "opencv_imgproc341d.lib")
-#pragma comment(lib, "opencv_highgui341d.lib")
+#pragma comment(lib, "opencv_core320d.lib")
+#pragma comment(lib, "opencv_imgcodecs320d.lib")
+#pragma comment(lib, "opencv_imgproc320.lib")
+#pragma comment(lib, "opencv_highgui320.lib")
 #else
 #pragma comment(lib, "opencv_core341.lib")
 #pragma comment(lib, "opencv_imgcodecs341.lib")
