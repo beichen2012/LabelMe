@@ -105,6 +105,7 @@ public:
 	void DrawCImageCenter(ATL::CImage& image, CWnd* pwnd, CRect& dstRect, COLORREF bkColor = RGB(105, 105, 105));
 	void DrawPolys(cv::Mat& canvas);
 	void DrawCurrentPoly(cv::Mat& canvas);
+	void DrawIdxRedPolys(int idx);
 
 	//
 	float GetPtDistI2(cv::Point& p1, cv::Point& p2);

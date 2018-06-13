@@ -66,6 +66,7 @@ BOOL CDlgAddedLabel::OnInitDialog()
 		mList.InsertItem(k, _T(""));
 		mList.SetItemText(k, 1, CString(std::to_string(k).c_str()));
 		mList.SetItemText(k, 2, CString(i.c_str()));
+		k++;
 	}
 
 	return TRUE;  // return TRUE unless you set the focus to a control

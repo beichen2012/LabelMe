@@ -68,6 +68,155 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_NOTIFY(NM_CLICK, IDC_LIST_POLYS, &CLabelMeWinDlg::OnNMClickListPolys)
 END_MESSAGE_MAP()
 
+double PolygonTest(std::vector<cv::Point>& c, Point2f pt, bool measureDist)
+{
+
+
+	double result = 0;
+	int i, total = c.size(), counter = 0;
+	//CV_Assert(total >= 0 && (depth == CV_32S || depth == CV_32F));
+
+	bool is_float = false;
+	double min_dist_num = FLT_MAX, min_dist_denom = 1;
+	Point ip(cvRound(pt.x), cvRound(pt.y));
+
+	if (total == 0)
+		return measureDist ? -DBL_MAX : -1;
+
+	const Point* cnt = &c[0];
+	const Point2f* cntf = (const Point2f*)cnt;
+
+	if (!is_float && !measureDist && ip.x == pt.x && ip.y == pt.y)
+	{
+		// the fastest "purely integer" branch
+		Point v0, v = cnt[total - 1];
+
+		for (i = 0; i < total; i++)
+		{
+			int dist;
+			v0 = v;
+			v = cnt[i];
+
+			if ((v0.y <= ip.y && v.y <= ip.y) ||
+				(v0.y > ip.y && v.y > ip.y) ||
+				(v0.x < ip.x && v.x < ip.x))
+			{
+				if (ip.y == v.y && (ip.x == v.x || (ip.y == v0.y &&
+					((v0.x <= ip.x && ip.x <= v.x) || (v.x <= ip.x && ip.x <= v0.x)))))
+					return 0;
+				continue;
+			}
+
+			dist = (ip.y - v0.y)*(v.x - v0.x) - (ip.x - v0.x)*(v.y - v0.y);
+			if (dist == 0)
+				return 0;
+			if (v.y < v0.y)
+				dist = -dist;
+			counter += dist > 0;
+		}
+
+		result = counter % 2 == 0 ? -1 : 1;
+	}
+	else
+	{
+		Point2f v0, v;
+		Point iv;
+
+		if (is_float)
+		{
+			v = cntf[total - 1];
+		}
+		else
+		{
+			v = cnt[total - 1];
+		}
+
+		if (!measureDist)
+		{
+			for (i = 0; i < total; i++)
+			{
+				double dist;
+				v0 = v;
+				if (is_float)
+					v = cntf[i];
+				else
+					v = cnt[i];
+
+				if ((v0.y <= pt.y && v.y <= pt.y) ||
+					(v0.y > pt.y && v.y > pt.y) ||
+					(v0.x < pt.x && v.x < pt.x))
+				{
+					if (pt.y == v.y && (pt.x == v.x || (pt.y == v0.y &&
+						((v0.x <= pt.x && pt.x <= v.x) || (v.x <= pt.x && pt.x <= v0.x)))))
+						return 0;
+					continue;
+				}
+
+				dist = (double)(pt.y - v0.y)*(v.x - v0.x) - (double)(pt.x - v0.x)*(v.y - v0.y);
+				if (dist == 0)
+					return 0;
+				if (v.y < v0.y)
+					dist = -dist;
+				counter += dist > 0;
+			}
+
+			result = counter % 2 == 0 ? -1 : 1;
+		}
+		else
+		{
+			for (i = 0; i < total; i++)
+			{
+				double dx, dy, dx1, dy1, dx2, dy2, dist_num, dist_denom = 1;
+
+				v0 = v;
+				if (is_float)
+					v = cntf[i];
+				else
+					v = cnt[i];
+
+				dx = v.x - v0.x; dy = v.y - v0.y;
+				dx1 = pt.x - v0.x; dy1 = pt.y - v0.y;
+				dx2 = pt.x - v.x; dy2 = pt.y - v.y;
+
+				if (dx1*dx + dy1*dy <= 0)
+					dist_num = dx1*dx1 + dy1*dy1;
+				else if (dx2*dx + dy2*dy >= 0)
+					dist_num = dx2*dx2 + dy2*dy2;
+				else
+				{
+					dist_num = (dy1*dx - dx1*dy);
+					dist_num *= dist_num;
+					dist_denom = dx*dx + dy*dy;
+				}
+
+				if (dist_num*min_dist_denom < min_dist_num*dist_denom)
+				{
+					min_dist_num = dist_num;
+					min_dist_denom = dist_denom;
+					if (min_dist_num == 0)
+						break;
+				}
+
+				if ((v0.y <= pt.y && v.y <= pt.y) ||
+					(v0.y > pt.y && v.y > pt.y) ||
+					(v0.x < pt.x && v.x < pt.x))
+					continue;
+
+				dist_num = dy1*dx - dx1*dy;
+				if (dy < 0)
+					dist_num = -dist_num;
+				counter += dist_num > 0;
+			}
+
+			result = std::sqrt(min_dist_num / min_dist_denom);
+			if (counter % 2 == 0)
+				result = -result;
+		}
+	}
+
+	return result;
+}
+
 
 // CLabelMeWinDlg 消息处理程序
 
@@ -693,6 +842,11 @@ void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 {
 	// TODO: 编辑多边形
 	mnCreateOrEdit = 1;
+	mvRoi.clear();
+	Mat tmp = mShow.clone();
+	DrawPolys(tmp);
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(FALSE);
@@ -880,6 +1034,42 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	mptStart.x = point.x - rectRoi.left;
 	mptStart.y = point.y - rectRoi.top;
 
+
+	if (mnCreateOrEdit == 1)
+	{ //## 编辑模式
+
+		//查看当前点，在哪个Poly里面
+		int idx = -1;
+		for (int i = 0; i < mvPolys.size(); i++)
+		{
+			auto& v = mvPolys[i].second;
+			//std::vector<cv::Point2f> c;
+			//for (auto& j : v)
+			//	c.push_back(Point2f(j.x, j.y));
+			auto ret = PolygonTest(v, Point2f(mptStart.x, mptStart.y), false);
+			if (ret >= 0)
+			{
+				//记录下i
+				idx = i;
+				break;
+			}
+		}
+
+		if(idx < 0)
+			return CDialogEx::OnLButtonUp(nFlags, point);
+
+		//画
+		ItemHighLight(mCurrentPolyIdx, idx, mListROIs);
+		mCurrentPolyIdx = idx;
+		DrawIdxRedPolys(idx);
+
+		// 映射ROI列表
+		
+
+		return CDialogEx::OnLButtonUp(nFlags, point);
+	}
+	//## 创建模式
+
 	//保存
 	mvRoi.push_back(mptStart);
 	if (mvRoi.size() > 4)
@@ -903,6 +1093,12 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			}
 			else
 			{
+				mvRoi.clear();
+				Mat tmp = mShow.clone();
+				DrawPolys(tmp);
+				DrawCurrentPoly(tmp);
+				ConvertMatToCImage(tmp, mCimg);
+				DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 				return CDialogEx::OnLButtonUp(nFlags, point);;
 			}
 
@@ -1032,10 +1228,15 @@ void CLabelMeWinDlg::OnNMClickListPolys(NMHDR *pNMHDR, LRESULT *pResult)
 		return;
 	mCurrentPolyIdx = index;
 	//
+	DrawIdxRedPolys(index);
+}
+
+void CLabelMeWinDlg::DrawIdxRedPolys(int idx)
+{
 	Mat tmp = mShow.clone();
 	DrawCurrentPoly(tmp);
-	DrawPolys(tmp );
-	auto& v = mvPolys[index].second;
+	DrawPolys(tmp);
+	auto& v = mvPolys[idx].second;
 
 	for (int k = 0; k < v.size(); k++)
 	{
