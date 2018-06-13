@@ -35,6 +35,15 @@ typedef struct _tImgAnno
 }TImgAnno;
 REFLECTION(TImgAnno, label, pts);
 
+typedef struct _ImgAnnoInfo
+{
+	std::vector<TImgAnno> va;
+	float x_scale;
+	float y_scale;
+	//std::string imageName;
+}TAnnoInfo;
+REFLECTION(TAnnoInfo, va, x_scale, y_scale/*, imageName*/);
+
 
 // CLabelMeWinDlg ¶Ô»°¿ò
 class CLabelMeWinDlg : public CDialogEx

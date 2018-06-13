@@ -375,7 +375,6 @@ void CLabelMeWinDlg::SaveLabels()
 		ofs.close();
 	}
 	//±ê×¢ÎÄ¼þ
-
 	std::vector<TImgAnno> va;
 	for (auto& i : mvPolys)
 	{
@@ -390,6 +389,10 @@ void CLabelMeWinDlg::SaveLabels()
 		}
 		va.push_back(ta);
 	}
+	TAnnoInfo outInfo;
+	outInfo.va = std::move(va);
+	outInfo.x_scale = float(mSrc.cols) / float(mShow.cols);
+	outInfo.y_scale = float(mSrc.rows) / float(mShow.rows);
 	//
 	char drive[4096] = { 0 };
 	char dir[4096] = { 0 };
@@ -399,7 +402,7 @@ void CLabelMeWinDlg::SaveLabels()
 	delete[] p;
 	std::string pathJson = std::string(drive) + dir + filename + ".json";
 	iguana::string_stream ss;
-	iguana::json::to_json(ss, va);
+	iguana::json::to_json(ss, outInfo);
 	
 	ofs.open(pathJson, std::ios::out);
 	if (!ofs.is_open())
@@ -505,8 +508,7 @@ void CLabelMeWinDlg::FindCurrentLabels()
 	}
 	delete[] pd;
 	//parse
-	auto b = d.IsArray();
-	Value& v = d;
+	Value& v = d["va"];
 	for (SizeType i = 0; i < v.Size(); i++)
 	{
 		//std::pair<std::string, std::vector<cv::Point>> roi;
