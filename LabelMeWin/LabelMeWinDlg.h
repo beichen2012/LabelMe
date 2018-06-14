@@ -13,7 +13,7 @@
 #include <opencv2/opencv.hpp>
 #include <iguana/json.hpp>
 
-#define MIN_NEIGBOR 5
+#define MIN_NEIGBOR 10
 #define POINT_CIRCLE_R 3
 #define POINT_LINE_R 1
 

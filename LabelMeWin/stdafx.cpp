@@ -39,10 +39,10 @@ char* ReadWholeFile(const char* path)
 
 
 #ifdef _DEBUG
-#pragma comment(lib, "opencv_core320d.lib")
-#pragma comment(lib, "opencv_imgcodecs320d.lib")
-#pragma comment(lib, "opencv_imgproc320.lib")
-#pragma comment(lib, "opencv_highgui320.lib")
+#pragma comment(lib, "opencv_core341d.lib")
+#pragma comment(lib, "opencv_imgcodecs341d.lib")
+#pragma comment(lib, "opencv_imgproc341d.lib")
+#pragma comment(lib, "opencv_highgui341d.lib")
 #else
 #pragma comment(lib, "opencv_core341.lib")
 #pragma comment(lib, "opencv_imgcodecs341.lib")
