@@ -476,9 +476,46 @@ void CLabelMeWinDlg::OnNMClickListFiles(NMHDR *pNMHDR, LRESULT *pResult)
 		return;
 
 	//
+
+
+
+	//保存
+	bool bSave = false;
+	if (mvPolys.size() != 0)
+	{
+		if (!mbAutoSave)
+		{
+			int ret = MessageBox(_T("是否保存当前图片的标注？"), _T("提示"), MB_OKCANCEL);
+			if (ret == IDOK)
+			{
+				//保存
+				bSave = true;
+			}
+		}
+		else
+		{
+			//自动保存
+			bSave = true;
+		}
+	}
+
+	if (bSave)
+	{
+		// 执行保存
+		SaveLabels();
+	}
+	//清空
+	mvPolys.clear();
+	mvRoi.clear();
+	RefreshROILists();
+
+
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[idx].c_str());
 	mCurrentIndex = idx;
 	LoadImageAndShow();
+	FindCurrentLabels();
+	//
+
 }
 
 void CLabelMeWinDlg::FindCurrentLabels()

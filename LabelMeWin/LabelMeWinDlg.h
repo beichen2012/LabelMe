@@ -13,8 +13,8 @@
 #include <opencv2/opencv.hpp>
 #include <iguana/json.hpp>
 
-#define MIN_NEIGBOR 10
-#define POINT_CIRCLE_R 3
+#define MIN_NEIGBOR 5
+#define POINT_CIRCLE_R 2
 #define POINT_LINE_R 1
 
 #define COLOR_GREEN (cv::Scalar(0,255,0))
