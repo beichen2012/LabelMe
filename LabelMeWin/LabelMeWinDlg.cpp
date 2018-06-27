@@ -1421,14 +1421,14 @@ void CLabelMeWinDlg::DrawIdxRedPolys(int idx)
 	for (int k = 0; k < v.size(); k++)
 	{
 		auto & pt = v[k];
-		circle(tmp, pt, POINT_CIRCLE_R, COLOR_RED, -1);
+		circle(tmp, SourcePt2CanvasPt(pt), POINT_CIRCLE_R, COLOR_RED, -1);
 		if (k == v.size() - 1)
 		{
-			line(tmp, pt, v[0], COLOR_RED, POINT_LINE_R);
+			line(tmp, SourcePt2CanvasPt(pt), SourcePt2CanvasPt(v[0]), COLOR_RED, POINT_LINE_R);
 		}
 		else
 		{
-			line(tmp, pt, v[k + 1], COLOR_RED, POINT_LINE_R);
+			line(tmp, SourcePt2CanvasPt(pt), SourcePt2CanvasPt(v[k + 1]), COLOR_RED, POINT_LINE_R);
 		}
 	}
 
