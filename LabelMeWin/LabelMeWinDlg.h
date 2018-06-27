@@ -38,8 +38,8 @@ REFLECTION(TImgAnno, label, pts);
 typedef struct _ImgAnnoInfo
 {
 	std::vector<TImgAnno> va;
-	float x_scale;
-	float y_scale;
+	float x_scale;	//无用
+	float y_scale;	//无用
 	//std::string imageName;
 }TAnnoInfo;
 REFLECTION(TAnnoInfo, va, x_scale, y_scale/*, imageName*/);
@@ -120,6 +120,19 @@ public:
 	float GetPtDistI2(cv::Point& p1, cv::Point& p2);
 
 	void SaveLabels();
+
+
+	cv::Point CanvasPt2SrcPt(cv::Point pt);
+	cv::Point SourcePt2CanvasPt(cv::Point pt);
+	cv::Point2f GetCurrentScaler();
+
+	//放大
+	int mScaleRatio;
+	//cv::Mat mShowScale;
+	//cv::Point mptScaleStart;
+	cv::Rect mroiScale;
+	void MakeScaleImage(cv::Mat& src, cv::Point& center, cv::Mat& dst, UINT id, int scale_factor);
+
 public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedBtnOpen();
@@ -136,6 +149,7 @@ public:
 	CListCtrl mListFiles;
 	CListCtrl mListROIs;
 	CListCtrl mListLabels;
+	int mWheelDelta;
 	afx_msg void OnBnClickedBtnOpenDir();
 	afx_msg void OnBnClickedBtnNextImage();
 	afx_msg void OnBnClickedBtnPrevImage();
@@ -150,4 +164,5 @@ public:
 	afx_msg void OnBnClickedBtnLoadLabel();
 	afx_msg void OnBnClickedCheckAutosave();
 	afx_msg void OnNMClickListPolys(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 };
