@@ -89,6 +89,8 @@ public:
 
 	//
 	bool mbLButtonDown;
+	bool mbDraged;
+	cv::Point mptDragOrigin;
 	cv::Point mptStart;
 	cv::Point mptEnd;
 	std::vector<cv::Point> mvRoi;

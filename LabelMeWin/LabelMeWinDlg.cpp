@@ -953,6 +953,8 @@ void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 	// TODO: 编辑多边形
 	mnCreateOrEdit = 1;
 	mvRoi.clear();
+	mbLButtonDown = false;
+	mbDraged = false;
 	Mat tmp = mShow.clone();
 	DrawPolys(tmp);
 	ConvertMatToCImage(tmp, mCimg);
@@ -1121,6 +1123,11 @@ void CLabelMeWinDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		goto RETURN;
 	}
 	mbLButtonDown = true;
+	mbDraged = false;
+	mptDragOrigin = { -1,-1 };
+	//
+	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	ClipCursor(rect);
 RETURN:
 	CDialogEx::OnLButtonDown(nFlags, point);
 }
@@ -1129,9 +1136,11 @@ RETURN:
 void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: 左键弹起
+	ClipCursor(NULL);
 	if(!mbLButtonDown)
 		return CDialogEx::OnLButtonUp(nFlags, point);
-
+	mbLButtonDown = false;
+	mptDragOrigin = { -1, -1 };
 	//记录下点
 	CRect rect;
 	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
@@ -1143,6 +1152,12 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		return CDialogEx::OnLButtonDown(nFlags, point);;
 	}
 	//
+	
+	if (mbDraged)
+	{
+		return CDialogEx::OnLButtonDown(nFlags, point);;
+	}
+		
 	mptStart.x = point.x - rectRoi.left;
 	mptStart.y = point.y - rectRoi.top;
 
@@ -1242,8 +1257,57 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 {
 	// TODO: 鼠标移动
+	if (mSrc.empty())
+		return CDialogEx::OnMouseMove(nFlags, point);
+	if(!mbLButtonDown)
+		return CDialogEx::OnMouseMove(nFlags, point);
 
-	CDialogEx::OnMouseMove(nFlags, point);
+	//按下鼠标左键，拖动图片
+	//记录下点
+	CRect rect;
+	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	ScreenToClient(rect);
+	//判断是否在控件内
+	CRect rectRoi = mRectShow + POINT{ rect.left, rect.top };
+	if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
+	{
+		return CDialogEx::OnMouseMove(nFlags, point);
+	}
+	mbDraged = true;
+	// 没有缩放，不允许手动
+	if (mScaleRatio == 0)
+		return CDialogEx::OnMouseMove(nFlags, point);
+
+
+	Point center;
+	center.x = point.x - rectRoi.left;
+	center.y = point.y - rectRoi.top;
+	center = CanvasPt2SrcPt(center);
+	if (mptDragOrigin.x == -1 || mptDragOrigin.y == -1)
+	{
+		mptDragOrigin = center;
+	}
+	if (mptDragOrigin == center)
+		return CDialogEx::OnMouseMove(nFlags, point);
+	//移动点
+	int delta_x = center.x - mptDragOrigin.x;
+	int delta_y = center.y - mptDragOrigin.y;
+	
+	if(!(std::abs(delta_x) > 10 || std::abs(delta_y) > 10))
+		return CDialogEx::OnMouseMove(nFlags, point);
+
+	mptDragOrigin = center;
+	center.x = mroiScale.x + mroiScale.width / 2 - delta_x;
+	center.y = mroiScale.y + mroiScale.height / 2 - delta_y;
+	
+	MakeScaleImage(mSrc, center, mShow, IDC_PIC, mScaleRatio);
+	Mat tmp = mShow.clone();
+	DrawPolys(tmp);
+	DrawCurrentPoly(tmp);
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+	
+	return CDialogEx::OnMouseMove(nFlags, point);
 }
 
 void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
@@ -1395,13 +1459,13 @@ BOOL CLabelMeWinDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	mWheelDelta += zDelta;
 	if (mWheelDelta >= 120 || mWheelDelta <= -120)
 	{
-		
 		//1. 记录点，转换点
 		cv::Point cvpt;
 		cvpt.x = pt.x - rectRoi.left;
 		cvpt.y = pt.y - rectRoi.top;
 
 		int delta = mWheelDelta > 0 ? 2 : -2;
+		mWheelDelta = 0;
 		if (mScaleRatio + delta > MAX_SCALE_RATIO ||
 			mScaleRatio + delta < 0)
 		{
@@ -1416,10 +1480,11 @@ BOOL CLabelMeWinDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		}
 		else
 		{
-			float x_scale = float(mSrc.cols) / float(mShow.cols);
-			float y_scale = float(mSrc.rows) / float(mShow.rows);
-			cvpt.x *= x_scale;
-			cvpt.y *= y_scale;
+			//float x_scale = float(mSrc.cols) / float(mShow.cols);
+			//float y_scale = float(mSrc.rows) / float(mShow.rows);
+			//cvpt.x *= x_scale;
+			//cvpt.y *= y_scale;
+			cvpt = CanvasPt2SrcPt(cvpt);
 			MakeScaleImage(mSrc, cvpt, mShow, IDC_PIC, mScaleRatio);
 		}
 
@@ -1430,7 +1495,7 @@ BOOL CLabelMeWinDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 		ConvertMatToCImage(tmp, mCimg);
 		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 		
-		mWheelDelta = 0;
+		
 	}
 	
 	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
