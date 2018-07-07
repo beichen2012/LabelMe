@@ -72,6 +72,8 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK_AUTOSAVE, &CLabelMeWinDlg::OnBnClickedCheckAutosave)
 	ON_NOTIFY(NM_CLICK, IDC_LIST_POLYS, &CLabelMeWinDlg::OnNMClickListPolys)
 	ON_WM_MOUSEWHEEL()
+	ON_WM_RBUTTONDOWN()
+	ON_WM_RBUTTONUP()
 END_MESSAGE_MAP()
 
 double PolygonTest(std::vector<cv::Point>& c, Point2f pt, bool measureDist)
@@ -306,6 +308,9 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(TRUE);
+
+	mbRButtonDown = false;
+	mnRButtonState = 0;
 	
 
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
@@ -1556,4 +1561,78 @@ void CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Point& center, cv::Mat& ds
 	resize(roi, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
 	if (dst.channels() == 1)
 		cvtColor(dst, dst, COLOR_GRAY2BGR);
+}
+
+void CLabelMeWinDlg::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	// TODO: 左键按下
+	CRect rect, rectRoi;
+	if (mShow.empty() || mSrc.empty())
+		goto RETURN;
+
+	//判断是否在控件内
+	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	ScreenToClient(rect);
+	//判断是否在控件内
+	rectRoi = mRectShow + POINT{ rect.left, rect.top };
+	if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
+	{
+		goto RETURN;
+	}
+
+	mbRButtonDown = true;
+	//
+	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	ClipCursor(rect);
+RETURN:
+	CDialogEx::OnRButtonDown(nFlags, point);
+}
+
+
+void CLabelMeWinDlg::OnRButtonUp(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	ClipCursor(NULL);
+	if (!mbRButtonDown)
+		return CDialogEx::OnRButtonUp(nFlags, point);
+	mbRButtonDown = false;
+	//记录下点
+	CRect rect;
+	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	ScreenToClient(rect);
+	//判断是否在控件内
+	CRect rectRoi = mRectShow + POINT{ rect.left, rect.top };
+	if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
+	{
+		return CDialogEx::OnLButtonDown(nFlags, point);;
+	}
+	//
+	cv::Point cvpt;
+	cvpt.x = point.x - rectRoi.left;
+	cvpt.y = point.y - rectRoi.top;
+
+	mnRButtonState++;
+	if (mnRButtonState == 3)
+		mnRButtonState = 0;
+	if (mnRButtonState == 0)
+	{
+		mScaleRatio = 0;
+		MakeShowingImage(mSrc, mShow, IDC_PIC);
+	}
+	else
+	{
+		cvpt = CanvasPt2SrcPt(cvpt);
+		mScaleRatio += 2;
+		MakeScaleImage(mSrc, cvpt, mShow, IDC_PIC, mScaleRatio);
+	}
+
+	//画标记
+	Mat tmp = mShow.clone();
+	DrawPolys(tmp);
+	DrawCurrentPoly(tmp);
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+
+	CDialogEx::OnRButtonUp(nFlags, point);
 }
