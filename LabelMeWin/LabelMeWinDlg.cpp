@@ -1442,6 +1442,8 @@ void CLabelMeWinDlg::DrawIdxRedPolys(int idx)
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
+#pragma region 滚动及右键放大
+
 BOOL CLabelMeWinDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
@@ -1635,4 +1637,42 @@ void CLabelMeWinDlg::OnRButtonUp(UINT nFlags, CPoint point)
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 
 	CDialogEx::OnRButtonUp(nFlags, point);
+}
+
+#pragma endregion
+
+BOOL CLabelMeWinDlg::PreTranslateMessage(MSG* pMsg)
+{
+	// TODO: 在此添加专用代码和/或调用基类
+	if (pMsg->message == WM_KEYDOWN)
+	{
+		if (pMsg->wParam == VK_ESCAPE)
+		{
+			//捕获ESC事件
+
+			//
+			if (!mbLButtonDown && !mbRButtonDown && !mSrc.empty())
+			{
+				//如果鼠标不是在按下状态，并且已经加载了图片
+				//那么，取消最后一个点的编辑
+				//画一个小圆
+				if (mvRoi.size() > 0)
+				{
+					mvRoi.pop_back();
+					Mat tmp = mShow.clone();
+					DrawPolys(tmp);
+					DrawCurrentPoly(tmp);
+					ConvertMatToCImage(tmp, mCimg);
+					DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+				}
+			}
+
+			//取消默认关闭窗体事件
+			return TRUE;
+		}
+	}
+
+
+
+	return CDialogEx::PreTranslateMessage(pMsg);
 }
