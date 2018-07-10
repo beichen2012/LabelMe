@@ -12,6 +12,7 @@
 #include <set>
 #include <opencv2/opencv.hpp>
 #include <iguana/json.hpp>
+#include "spdhelper.hpp"
 
 #define MIN_NEIGBOR 5
 #define POINT_CIRCLE_R 2

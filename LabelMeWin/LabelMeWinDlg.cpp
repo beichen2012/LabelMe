@@ -312,7 +312,7 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mbRButtonDown = false;
 	mnRButtonState = 0;
 	
-
+	LOGD("Init dialog...");
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
 
@@ -711,6 +711,7 @@ void CLabelMeWinDlg::ItemHighLight(int idx_no, int idx_yes, CListCtrl& list)
 void CLabelMeWinDlg::OnBnClickedBtnOpen()
 {
 	// TODO: 打开文件对话框
+	ENTER_FUNC;
 	//1.
 	//打开文件
 	CString filePath = _T("");
@@ -737,6 +738,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	char filename[4096] = { 0 };
 	char ext[4096] = { 0 };
 	char* p = cstring_to_char(mCurrentFile);
+	LOGD("file path is: {}", p);
 	_splitpath(p, drive, dir, filename, ext);
 	delete[] p;
 
@@ -756,11 +758,13 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 
 	//查找是否有本文件的标注文件，读入并显示
 	FindCurrentLabels();
+	LEAVE_FUNC;
 }
 
 void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 {
 	// TODO: 选择目录
+	ENTER_FUNC;
 	mRootDir = SelectFolder();
 	if (mRootDir == _T(""))
 	{
@@ -771,6 +775,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	std::string strRoot;
 	CBrowseDir br;
 	char* pr = cstring_to_char(mRootDir);
+	LOGD("root folder is: {}", pr);
 	br.SetInitDir(pr);
 	strRoot = pr;
 	delete[] pr;
@@ -779,6 +784,11 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	auto r2 = br.BeginBrowseFilenames("*.bmp");
 	auto r3 = br.BeginBrowseFilenames("*.tiff");
 	auto r4 = br.BeginBrowseFilenames("*.png");
+
+	LOGD("find jpg in root folder, num is: -> {}", r1.size());
+	LOGD("find bmp in root folder, num is: -> {}", r2.size());
+	LOGD("find tiff in root folder, num is: -> {}", r3.size());
+	LOGD("find png in root folder, num is: -> {}", r4.size());
 
 	mvFiles.clear();
 	mvFiles.insert(mvFiles.end(), r1.begin(), r1.end());
@@ -813,6 +823,8 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	//List 
 	ItemHighLight(-1, 0, mListFiles);
 	mbLButtonDown = false;
+
+	LEAVE_FUNC;
 }
 
 
