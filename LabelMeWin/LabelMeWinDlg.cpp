@@ -311,7 +311,7 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 
 	mbRButtonDown = false;
 	mnRButtonState = 0;
-	
+
 	LOGD("Init dialog...");
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }

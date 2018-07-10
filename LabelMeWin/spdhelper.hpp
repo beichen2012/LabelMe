@@ -113,6 +113,15 @@ using LabelMeWin::spdhelper;
 #define ENTER_FUNC (LOGD("enter function: {0}", __FUNCTION__))
 #define LEAVE_FUNC (LOGD("leave function: {0}", __FUNCTION__))
 
+//for file and line 
+#define SPDHELPER_STR_H(x) #x
+#define SPDHELPER_STR_HELPER(x) SPDHELPER_STR_H(x)
+#define LOGTV(...) LOG->trace("[" __FILE__ ":" SPDHELPER_STR_HELPER(__LINE__) "] " __VA_ARGS__)
+#define LOGDV(...) LOG->debug("[" __FILE__ ":" SPDHELPER_STR_HELPER(__LINE__) "] " __VA_ARGS__)
+#define LOGIV(...) LOG->info("[" __FILE__ ":" SPDHELPER_STR_HELPER(__LINE__) "] " __VA_ARGS__)
+#define LOGWV(...) LOG->warn("[" __FILE__ ":" SPDHELPER_STR_HELPER(__LINE__) "] " __VA_ARGS__)
+#define LOGEV(...) LOG->error("[" __FILE__ ":" SPDHELPER_STR_HELPER(__LINE__) "] " __VA_ARGS__)
+
 #else
 #define ENTER_FUNC /##/
 #define LEAVE_FUNC /##/
@@ -123,4 +132,10 @@ using LabelMeWin::spdhelper;
 #define LOGW /##/
 #define LOGE /##/
 #define LOGC /##/
+
+#define LOGTV(...) void(0)
+#define LOGDV(...) void(0)
+#define LOGIV(...) void(0)
+#define LOGWV(...) void(0)
+#define LOGEV(...) void(0)
 #endif
