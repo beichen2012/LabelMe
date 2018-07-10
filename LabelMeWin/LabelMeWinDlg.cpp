@@ -295,7 +295,7 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 
 	//当前标签列表
 	mListROIs.GetClientRect(rect);
-	mListROIs.SetExtendedStyle(mListFiles.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES);
+	mListROIs.SetExtendedStyle(mListFiles.GetExtendedStyle() | LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_CHECKBOXES);
 	lw = rect.Width() / 15;
 	mListROIs.InsertColumn(0, _T(""), LVCFMT_LEFT, 0);
 	mListROIs.InsertColumn(1, _T("序号"), LVCFMT_LEFT, lw * 3);
@@ -1419,6 +1419,10 @@ void CLabelMeWinDlg::OnNMDblclkListPolys(NMHDR *pNMHDR, LRESULT *pResult)
 	// TODO: 在此添加控件通知处理程序代码
 	*pResult = 0;
 
+	int index = pNMItemActivate->iItem;
+	if (index > mvPolys.size() - 1 || index < 0)
+		return;
+
 	// 修改当前选定的 多边形的标签
 	std::string newLabel;
 	CDlgAddedLabel* dlg = new CDlgAddedLabel(msLabels);
@@ -1432,9 +1436,7 @@ void CLabelMeWinDlg::OnNMDblclkListPolys(NMHDR *pNMHDR, LRESULT *pResult)
 		delete[] p;
 
 		//
-		int index = pNMItemActivate->iItem;
-		if (index > mvPolys.size() - 1)
-			return;
+		
 		mCurrentPolyIdx = index;
 		mvPolys[index].first = newLabel;
 		//
@@ -1460,7 +1462,7 @@ void CLabelMeWinDlg::OnNMClickListPolys(NMHDR *pNMHDR, LRESULT *pResult)
 
 	//
 	int index = pNMItemActivate->iItem;
-	if (index > mvPolys.size() - 1)
+	if (index > mvPolys.size() - 1 || index < 0)
 		return;
 	mCurrentPolyIdx = index;
 	//
