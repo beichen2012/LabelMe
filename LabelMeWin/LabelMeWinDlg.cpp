@@ -74,6 +74,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_WM_MOUSEWHEEL()
 	ON_WM_RBUTTONDOWN()
 	ON_WM_RBUTTONUP()
+	ON_NOTIFY(NM_DBLCLK, IDC_LIST_POLYS, &CLabelMeWinDlg::OnNMDblclkListPolys)
 END_MESSAGE_MAP()
 
 double PolygonTest(std::vector<cv::Point>& c, Point2f pt, bool measureDist)
@@ -1412,6 +1413,44 @@ void CLabelMeWinDlg::OnBnClickedCheckAutosave()
 		mbAutoSave = false;
 }
 
+void CLabelMeWinDlg::OnNMDblclkListPolys(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	// TODO: 在此添加控件通知处理程序代码
+	*pResult = 0;
+
+	// 修改当前选定的 多边形的标签
+	std::string newLabel;
+	CDlgAddedLabel* dlg = new CDlgAddedLabel(msLabels);
+	if (dlg->DoModal() == IDOK)
+	{
+		auto txt = dlg->mEditLabel;
+		char* p = cstring_to_char(txt);
+		//
+		msLabels.insert(std::string(p));
+		newLabel = p;
+		delete[] p;
+
+		//
+		int index = pNMItemActivate->iItem;
+		if (index > mvPolys.size() - 1)
+			return;
+		mCurrentPolyIdx = index;
+		mvPolys[index].first = newLabel;
+		//
+		DrawIdxRedPolys(index);
+
+		//标注列表标签列表都要刷新 
+		RefreshLabelLists();
+		RefreshROILists();
+	}
+	else
+	{
+		MessageBox(_T("你没有选定新的标签，标签将不会修改！"));
+	}
+	delete dlg;
+
+}
 
 void CLabelMeWinDlg::OnNMClickListPolys(NMHDR *pNMHDR, LRESULT *pResult)
 {
@@ -1688,3 +1727,6 @@ BOOL CLabelMeWinDlg::PreTranslateMessage(MSG* pMsg)
 
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
+
+
+

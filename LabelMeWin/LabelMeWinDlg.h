@@ -175,4 +175,5 @@ public:
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg void OnNMDblclkListPolys(NMHDR *pNMHDR, LRESULT *pResult);
 };
