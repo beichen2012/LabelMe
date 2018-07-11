@@ -988,6 +988,7 @@ void CLabelMeWinDlg::LoadImageAndShow()
 {
 	auto* p = cstring_to_char(mCurrentFile);
 	mSrc = imread(p);
+	delete[] p;
 	if (mSrc.empty())
 	{
 		MessageBox(_T("无法读取文件：\r\n") + mCurrentFile);
