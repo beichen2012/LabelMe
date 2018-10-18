@@ -1280,6 +1280,26 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 		return CDialogEx::OnMouseMove(nFlags, point);
 	}
 
+	mptStart.x = point.x - rectRoi.left;
+	mptStart.y = point.y - rectRoi.top;
+
+	mptStart = CanvasPt2SrcPt(mptStart);
+
+
+	mvRoi.push_back(mptStart);
+	//»­Ò»¸öÐ¡Ô²
+	static int draw_intervel = 0;
+	if (draw_intervel == 8)
+	{
+		draw_intervel = 0;
+		Mat tmp = mShow.clone();
+		DrawPolys(tmp);
+		DrawCurrentPoly(tmp);
+		ConvertMatToCImage(tmp, mCimg);
+		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+	}
+	draw_intervel++;
+	
 	return CDialogEx::OnMouseMove(nFlags, point);
 
 
