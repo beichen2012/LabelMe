@@ -90,8 +90,6 @@ public:
 
 	//
 	bool mbLButtonDown;
-	bool mbDraged;
-	cv::Point mptDragOrigin;
 	cv::Point mptStart;
 	cv::Point mptEnd;
 	std::vector<cv::Point> mvRoi;
@@ -133,12 +131,6 @@ public:
 	cv::Point SourcePt2CanvasPt(cv::Point pt);
 	cv::Point2f GetCurrentScaler();
 
-	//·Å´ó
-	int mScaleRatio;
-	//cv::Mat mShowScale;
-	//cv::Point mptScaleStart;
-	cv::Rect mroiScale;
-	void MakeScaleImage(cv::Mat& src, cv::Point& center, cv::Mat& dst, UINT id, int scale_factor);
 
 public:
 	afx_msg void OnBnClickedOk();
@@ -156,7 +148,6 @@ public:
 	CListCtrl mListFiles;
 	CListCtrl mListROIs;
 	CListCtrl mListLabels;
-	int mWheelDelta;
 	afx_msg void OnBnClickedBtnOpenDir();
 	afx_msg void OnBnClickedBtnNextImage();
 	afx_msg void OnBnClickedBtnPrevImage();

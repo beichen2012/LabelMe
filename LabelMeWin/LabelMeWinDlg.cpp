@@ -29,9 +29,6 @@ CLabelMeWinDlg::CLabelMeWinDlg(CWnd* pParent /*=NULL*/)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDI_FRAME);
 	mCurrentPolyIdx = -1;
-
-	mWheelDelta = 0;
-	mScaleRatio = 0;
 }
 
 void CLabelMeWinDlg::DoDataExchange(CDataExchange* pDX)
@@ -438,20 +435,20 @@ cv::Point CLabelMeWinDlg::CanvasPt2SrcPt(cv::Point pt)
 	//
 	Point2f rt;
 	Point out;
-	if (mScaleRatio == 0)
-	{
+	//if (mScaleRatio == 0)
+	//{
 		rt.x = float(mSrc.cols) / float(mShow.cols);
 		rt.y = float(mSrc.rows) / float(mShow.rows);
 		out.x = rt.x * pt.x;
 		out.y = rt.y * pt.y;
-	}
-	else
-	{
-		rt.x = float(mroiScale.width) / float(mShow.cols);
-		rt.y = float(mroiScale.height) / float(mShow.rows);
-		out.x = mroiScale.x + pt.x * rt.x;
-		out.y = mroiScale.y + pt.y * rt.y;
-	}
+	//}
+	//else
+	//{
+	//	rt.x = float(mroiScale.width) / float(mShow.cols);
+	//	rt.y = float(mroiScale.height) / float(mShow.rows);
+	//	out.x = mroiScale.x + pt.x * rt.x;
+	//	out.y = mroiScale.y + pt.y * rt.y;
+	//}
 
 	return out;
 }
@@ -460,36 +457,36 @@ cv::Point CLabelMeWinDlg::SourcePt2CanvasPt(cv::Point pt)
 {
 	Point2f rt;
 	Point out;
-	if (mScaleRatio == 0)
-	{
+	//if (mScaleRatio == 0)
+	//{
 		rt.x = float(mSrc.cols) / float(mShow.cols);
 		rt.y = float(mSrc.rows) / float(mShow.rows);
 		out.x = pt.x / rt.x;
 		out.y = pt.y / rt.y;
-	}
-	else
-	{
-		rt.x = float(mroiScale.width) / float(mShow.cols);
-		rt.y = float(mroiScale.height) / float(mShow.rows);
-		out.x = (pt.x - mroiScale.x) / rt.x;
-		out.y = (pt.y - mroiScale.y) / rt.y;
-	}
+	//}
+	//else
+	//{
+	//	rt.x = float(mroiScale.width) / float(mShow.cols);
+	//	rt.y = float(mroiScale.height) / float(mShow.rows);
+	//	out.x = (pt.x - mroiScale.x) / rt.x;
+	//	out.y = (pt.y - mroiScale.y) / rt.y;
+	//}
 	return out;
 }
 
 cv::Point2f CLabelMeWinDlg::GetCurrentScaler()
 {
 	Point2f rt;
-	if (mScaleRatio == 0)
-	{
+	//if (mScaleRatio == 0)
+	//{
 		rt.x = float(mSrc.cols) / float(mShow.cols);
 		rt.y = float(mSrc.rows) / float(mShow.rows);
-	}
+	/*}
 	else
 	{
 		rt.x = float(mroiScale.width) / float(mShow.cols);
 		rt.y = float(mroiScale.height) / float(mShow.rows);
-	}
+	}*/
 	return rt;
 }
 
@@ -972,7 +969,6 @@ void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 	mnCreateOrEdit = 1;
 	mvRoi.clear();
 	mbLButtonDown = false;
-	mbDraged = false;
 	Mat tmp = mShow.clone();
 	DrawPolys(tmp);
 	ConvertMatToCImage(tmp, mCimg);
@@ -1086,7 +1082,6 @@ void CLabelMeWinDlg::MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id)
 		w = rect.right;
 		h = src.rows / ratio_w;
 	}
-	mroiScale = { 0,0, mSrc.cols, mSrc.rows };
 	resize(src, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
 	if (dst.channels() == 1)
 		cvtColor(dst, dst, COLOR_GRAY2BGR);
@@ -1142,8 +1137,6 @@ void CLabelMeWinDlg::OnLButtonDown(UINT nFlags, CPoint point)
 		goto RETURN;
 	}
 	mbLButtonDown = true;
-	mbDraged = false;
-	mptDragOrigin = { -1,-1 };
 	//
 	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
 	ClipCursor(rect);
@@ -1159,7 +1152,6 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	if(!mbLButtonDown)
 		return CDialogEx::OnLButtonUp(nFlags, point);
 	mbLButtonDown = false;
-	mptDragOrigin = { -1, -1 };
 	//记录下点
 	CRect rect;
 	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
@@ -1171,11 +1163,6 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		return CDialogEx::OnLButtonDown(nFlags, point);;
 	}
 	//
-	
-	if (mbDraged)
-	{
-		return CDialogEx::OnLButtonDown(nFlags, point);;
-	}
 		
 	mptStart.x = point.x - rectRoi.left;
 	mptStart.y = point.y - rectRoi.top;
@@ -1292,41 +1279,39 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 	{
 		return CDialogEx::OnMouseMove(nFlags, point);
 	}
-	mbDraged = true;
-	// 没有缩放，不允许手动
-	if (mScaleRatio == 0)
-		return CDialogEx::OnMouseMove(nFlags, point);
 
-
-	Point center;
-	center.x = point.x - rectRoi.left;
-	center.y = point.y - rectRoi.top;
-	center = CanvasPt2SrcPt(center);
-	if (mptDragOrigin.x == -1 || mptDragOrigin.y == -1)
-	{
-		mptDragOrigin = center;
-	}
-	if (mptDragOrigin == center)
-		return CDialogEx::OnMouseMove(nFlags, point);
-	//移动点
-	int delta_x = center.x - mptDragOrigin.x;
-	int delta_y = center.y - mptDragOrigin.y;
-	
-	if(!(std::abs(delta_x) > 10 || std::abs(delta_y) > 10))
-		return CDialogEx::OnMouseMove(nFlags, point);
-
-	mptDragOrigin = center;
-	center.x = mroiScale.x + mroiScale.width / 2 - delta_x;
-	center.y = mroiScale.y + mroiScale.height / 2 - delta_y;
-	
-	MakeScaleImage(mSrc, center, mShow, IDC_PIC, mScaleRatio);
-	Mat tmp = mShow.clone();
-	DrawPolys(tmp);
-	DrawCurrentPoly(tmp);
-	ConvertMatToCImage(tmp, mCimg);
-	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
-	
 	return CDialogEx::OnMouseMove(nFlags, point);
+
+
+	//Point center;
+	//center.x = point.x - rectRoi.left;
+	//center.y = point.y - rectRoi.top;
+	//center = CanvasPt2SrcPt(center);
+	//if (mptDragOrigin.x == -1 || mptDragOrigin.y == -1)
+	//{
+	//	mptDragOrigin = center;
+	//}
+	//if (mptDragOrigin == center)
+	//	return CDialogEx::OnMouseMove(nFlags, point);
+	////移动点
+	//int delta_x = center.x - mptDragOrigin.x;
+	//int delta_y = center.y - mptDragOrigin.y;
+	//
+	//if(!(std::abs(delta_x) > 10 || std::abs(delta_y) > 10))
+	//	return CDialogEx::OnMouseMove(nFlags, point);
+
+	//mptDragOrigin = center;
+	//center.x = mroiScale.x + mroiScale.width / 2 - delta_x;
+	//center.y = mroiScale.y + mroiScale.height / 2 - delta_y;
+	//
+	//MakeScaleImage(mSrc, center, mShow, IDC_PIC, mScaleRatio);
+	//Mat tmp = mShow.clone();
+	//DrawPolys(tmp);
+	//DrawCurrentPoly(tmp);
+	//ConvertMatToCImage(tmp, mCimg);
+	//DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+	//
+	//return CDialogEx::OnMouseMove(nFlags, point);
 }
 
 void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
@@ -1404,7 +1389,7 @@ void CLabelMeWinDlg::OnBnClickedBtnLoadLabel()
 	RefreshLabelLists();
 }
 
-
+ 
 void CLabelMeWinDlg::OnBnClickedCheckAutosave()
 {
 	// TODO: 自动保存?
@@ -1501,147 +1486,150 @@ void CLabelMeWinDlg::DrawIdxRedPolys(int idx)
 BOOL CLabelMeWinDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	if(mSrc.empty())
-		return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
-	
 
-	//记录下点
-	CRect rect;
-	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
-	//ScreenToClient(rect);
-	//判断是否在控件内
-	CRect rectRoi = mRectShow + POINT{ rect.left, rect.top };
-	if (pt.x < rectRoi.left || pt.x > rectRoi.right || pt.y < rectRoi.top || pt.y > rectRoi.bottom)
-	{
-		return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
-	}
-
-
-	mWheelDelta += zDelta;
-	if (mWheelDelta >= 120 || mWheelDelta <= -120)
-	{
-		//1. 记录点，转换点
-		cv::Point cvpt;
-		cvpt.x = pt.x - rectRoi.left;
-		cvpt.y = pt.y - rectRoi.top;
-
-		int delta = mWheelDelta > 0 ? 2 : -2;
-		mWheelDelta = 0;
-		if (mScaleRatio + delta > MAX_SCALE_RATIO ||
-			mScaleRatio + delta < 0)
-		{
-			return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
-		}
-
-		// 放大或是缩小
-		mScaleRatio += delta;
-		if (mScaleRatio == 0)
-		{
-			MakeShowingImage(mSrc, mShow, IDC_PIC);
-		}
-		else
-		{
-			//float x_scale = float(mSrc.cols) / float(mShow.cols);
-			//float y_scale = float(mSrc.rows) / float(mShow.rows);
-			//cvpt.x *= x_scale;
-			//cvpt.y *= y_scale;
-			cvpt = CanvasPt2SrcPt(cvpt);
-			MakeScaleImage(mSrc, cvpt, mShow, IDC_PIC, mScaleRatio);
-		}
-
-		//画标记
-		Mat tmp = mShow.clone();
-		DrawPolys(tmp);
-		DrawCurrentPoly(tmp);
-		ConvertMatToCImage(tmp, mCimg);
-		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
-		
-		
-	}
-	
 	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
+
+	//if(mSrc.empty())
+	//	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
+	//
+
+	////记录下点
+	//CRect rect;
+	//GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	////ScreenToClient(rect);
+	////判断是否在控件内
+	//CRect rectRoi = mRectShow + POINT{ rect.left, rect.top };
+	//if (pt.x < rectRoi.left || pt.x > rectRoi.right || pt.y < rectRoi.top || pt.y > rectRoi.bottom)
+	//{
+	//	return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
+	//}
+
+
+	//mWheelDelta += zDelta;
+	//if (mWheelDelta >= 120 || mWheelDelta <= -120)
+	//{
+	//	//1. 记录点，转换点
+	//	cv::Point cvpt;
+	//	cvpt.x = pt.x - rectRoi.left;
+	//	cvpt.y = pt.y - rectRoi.top;
+
+	//	int delta = mWheelDelta > 0 ? 2 : -2;
+	//	mWheelDelta = 0;
+	//	if (mScaleRatio + delta > MAX_SCALE_RATIO ||
+	//		mScaleRatio + delta < 0)
+	//	{
+	//		return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
+	//	}
+
+	//	// 放大或是缩小
+	//	mScaleRatio += delta;
+	//	if (mScaleRatio == 0)
+	//	{
+	//		MakeShowingImage(mSrc, mShow, IDC_PIC);
+	//	}
+	//	else
+	//	{
+	//		//float x_scale = float(mSrc.cols) / float(mShow.cols);
+	//		//float y_scale = float(mSrc.rows) / float(mShow.rows);
+	//		//cvpt.x *= x_scale;
+	//		//cvpt.y *= y_scale;
+	//		cvpt = CanvasPt2SrcPt(cvpt);
+	//		MakeScaleImage(mSrc, cvpt, mShow, IDC_PIC, mScaleRatio);
+	//	}
+
+	//	//画标记
+	//	Mat tmp = mShow.clone();
+	//	DrawPolys(tmp);
+	//	DrawCurrentPoly(tmp);
+	//	ConvertMatToCImage(tmp, mCimg);
+	//	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+	//	
+	//	
+	//}
+	//
+	//return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
 
-
-void CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Point& center, cv::Mat& dst, UINT id, int scale_factor)
-{
-	// 缩放图片
-	if (src.empty())
-		return;
-	CWnd* pwnd = GetDlgItem(id);
-	CRect rect;
-	pwnd->GetClientRect(rect);
-
-	int h, w;
-	float ratio_h = src.rows * 1.0 / rect.Height();
-	float ratio_w = src.cols * 1.0 / rect.Width();
-	
-	if (ratio_h > ratio_w)
-	{
-		//按H的压缩比例计算
-		h = rect.bottom;
-		w = src.cols / ratio_h;
-	}
-	else
-	{
-		w = rect.right;
-		h = src.rows / ratio_w;
-	}
-	//w,h就是最终的比例
-	Rect r;
-	if (scale_factor == 2)
-	{
-		r.x = center.x - w;
-		r.y = center.y - h;
-		r.width = w * 2;
-		r.height = h * 2;
-	}
-	else if (scale_factor == 4)
-	{
-		r.x = center.x - w / 2;
-		r.y = center.y - h / 2;
-		r.width = w;
-		r.height = h;
-	}
-	
-	if (r.x < 0)
-		r.x = 0;
-	if (r.y < 0)
-		r.y = 0;
-	if (r.x + r.width > src.cols - 1)
-		r.width = src.cols - r.x - 1;
-	if (r.y + r.height > src.rows - 1)
-		r.height = src.rows - r.y - 1;
-	mroiScale = r;
-	Mat roi = src(r);
-	resize(roi, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
-	if (dst.channels() == 1)
-		cvtColor(dst, dst, COLOR_GRAY2BGR);
-}
+//
+//void CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Point& center, cv::Mat& dst, UINT id, int scale_factor)
+//{
+//	// 缩放图片
+//	if (src.empty())
+//		return;
+//	CWnd* pwnd = GetDlgItem(id);
+//	CRect rect;
+//	pwnd->GetClientRect(rect);
+//
+//	int h, w;
+//	float ratio_h = src.rows * 1.0 / rect.Height();
+//	float ratio_w = src.cols * 1.0 / rect.Width();
+//	
+//	if (ratio_h > ratio_w)
+//	{
+//		//按H的压缩比例计算
+//		h = rect.bottom;
+//		w = src.cols / ratio_h;
+//	}
+//	else
+//	{
+//		w = rect.right;
+//		h = src.rows / ratio_w;
+//	}
+//	//w,h就是最终的比例
+//	Rect r;
+//	if (scale_factor == 2)
+//	{
+//		r.x = center.x - w;
+//		r.y = center.y - h;
+//		r.width = w * 2;
+//		r.height = h * 2;
+//	}
+//	else if (scale_factor == 4)
+//	{
+//		r.x = center.x - w / 2;
+//		r.y = center.y - h / 2;
+//		r.width = w;
+//		r.height = h;
+//	}
+//	
+//	if (r.x < 0)
+//		r.x = 0;
+//	if (r.y < 0)
+//		r.y = 0;
+//	if (r.x + r.width > src.cols - 1)
+//		r.width = src.cols - r.x - 1;
+//	if (r.y + r.height > src.rows - 1)
+//		r.height = src.rows - r.y - 1;
+//	mroiScale = r;
+//	Mat roi = src(r);
+//	resize(roi, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
+//	if (dst.channels() == 1)
+//		cvtColor(dst, dst, COLOR_GRAY2BGR);
+//}
 
 void CLabelMeWinDlg::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
 	// TODO: 左键按下
-	CRect rect, rectRoi;
-	if (mShow.empty() || mSrc.empty())
-		goto RETURN;
-
-	//判断是否在控件内
-	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
-	ScreenToClient(rect);
-	//判断是否在控件内
-	rectRoi = mRectShow + POINT{ rect.left, rect.top };
-	if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
-	{
-		goto RETURN;
-	}
-
-	mbRButtonDown = true;
-	//
-	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
-	ClipCursor(rect);
-RETURN:
+//	CRect rect, rectRoi;
+//	if (mShow.empty() || mSrc.empty())
+//		goto RETURN;
+//
+//	//判断是否在控件内
+//	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+//	ScreenToClient(rect);
+//	//判断是否在控件内
+//	rectRoi = mRectShow + POINT{ rect.left, rect.top };
+//	if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
+//	{
+//		goto RETURN;
+//	}
+//
+//	mbRButtonDown = true;
+//	//
+//	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+//	ClipCursor(rect);
+//RETURN:
 	CDialogEx::OnRButtonDown(nFlags, point);
 }
 
@@ -1649,46 +1637,46 @@ RETURN:
 void CLabelMeWinDlg::OnRButtonUp(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
-	ClipCursor(NULL);
-	if (!mbRButtonDown)
-		return CDialogEx::OnRButtonUp(nFlags, point);
-	mbRButtonDown = false;
-	//记录下点
-	CRect rect;
-	GetDlgItem(IDC_PIC)->GetWindowRect(rect);
-	ScreenToClient(rect);
-	//判断是否在控件内
-	CRect rectRoi = mRectShow + POINT{ rect.left, rect.top };
-	if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
-	{
-		return CDialogEx::OnLButtonDown(nFlags, point);;
-	}
-	//
-	cv::Point cvpt;
-	cvpt.x = point.x - rectRoi.left;
-	cvpt.y = point.y - rectRoi.top;
+	//ClipCursor(NULL);
+	//if (!mbRButtonDown)
+	//	return CDialogEx::OnRButtonUp(nFlags, point);
+	//mbRButtonDown = false;
+	////记录下点
+	//CRect rect;
+	//GetDlgItem(IDC_PIC)->GetWindowRect(rect);
+	//ScreenToClient(rect);
+	////判断是否在控件内
+	//CRect rectRoi = mRectShow + POINT{ rect.left, rect.top };
+	//if (point.x < rectRoi.left || point.x > rectRoi.right || point.y < rectRoi.top || point.y > rectRoi.bottom)
+	//{
+	//	return CDialogEx::OnLButtonDown(nFlags, point);;
+	//}
+	////
+	//cv::Point cvpt;
+	//cvpt.x = point.x - rectRoi.left;
+	//cvpt.y = point.y - rectRoi.top;
 
-	mnRButtonState++;
-	if (mnRButtonState == 3)
-		mnRButtonState = 0;
-	if (mnRButtonState == 0)
-	{
-		mScaleRatio = 0;
-		MakeShowingImage(mSrc, mShow, IDC_PIC);
-	}
-	else
-	{
-		cvpt = CanvasPt2SrcPt(cvpt);
-		mScaleRatio += 2;
-		MakeScaleImage(mSrc, cvpt, mShow, IDC_PIC, mScaleRatio);
-	}
+	//mnRButtonState++;
+	//if (mnRButtonState == 3)
+	//	mnRButtonState = 0;
+	//if (mnRButtonState == 0)
+	//{
+	//	mScaleRatio = 0;
+	//	MakeShowingImage(mSrc, mShow, IDC_PIC);
+	//}
+	//else
+	//{
+	//	cvpt = CanvasPt2SrcPt(cvpt);
+	//	mScaleRatio += 2;
+	//	MakeScaleImage(mSrc, cvpt, mShow, IDC_PIC, mScaleRatio);
+	//}
 
-	//画标记
-	Mat tmp = mShow.clone();
-	DrawPolys(tmp);
-	DrawCurrentPoly(tmp);
-	ConvertMatToCImage(tmp, mCimg);
-	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+	////画标记
+	//Mat tmp = mShow.clone();
+	//DrawPolys(tmp);
+	//DrawCurrentPoly(tmp);
+	//ConvertMatToCImage(tmp, mCimg);
+	//DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 
 	CDialogEx::OnRButtonUp(nFlags, point);
 }
