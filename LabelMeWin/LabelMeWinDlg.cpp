@@ -12,8 +12,9 @@
 #include <rapidjson\document.h>
 using namespace cv;
 
-//最多放大4倍速
+//最多放大倍率
 #define MAX_SCALE_RATIO 4
+#define SCALE_STEP 0.5
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -1380,37 +1381,6 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 	draw_intervel++;
 	
 	return CDialogEx::OnMouseMove(nFlags, point);
-
-
-	//Point center;
-	//center.x = point.x - rectRoi.left;
-	//center.y = point.y - rectRoi.top;
-	//center = CanvasPt2SrcPt(center);
-	//if (mptDragOrigin.x == -1 || mptDragOrigin.y == -1)
-	//{
-	//	mptDragOrigin = center;
-	//}
-	//if (mptDragOrigin == center)
-	//	return CDialogEx::OnMouseMove(nFlags, point);
-	////移动点
-	//int delta_x = center.x - mptDragOrigin.x;
-	//int delta_y = center.y - mptDragOrigin.y;
-	//
-	//if(!(std::abs(delta_x) > 10 || std::abs(delta_y) > 10))
-	//	return CDialogEx::OnMouseMove(nFlags, point);
-
-	//mptDragOrigin = center;
-	//center.x = mroiScale.x + mroiScale.width / 2 - delta_x;
-	//center.y = mroiScale.y + mroiScale.height / 2 - delta_y;
-	//
-	//MakeScaleImage(mSrc, center, mShow, IDC_PIC, mScaleRatio);
-	//Mat tmp = mShow.clone();
-	//DrawPolys(tmp);
-	//DrawCurrentPoly(tmp);
-	//ConvertMatToCImage(tmp, mCimg);
-	//DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
-	//
-	//return CDialogEx::OnMouseMove(nFlags, point);
 }
 
 void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
@@ -1426,21 +1396,15 @@ void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
 		{
 			pt1 = v[k];
 			pt1 = SourcePt2CanvasPt(pt1);
-			//pt1.x -= dx;
-			//pt1.y -= dy;
 			circle(canvas, pt1, POINT_CIRCLE_R, COLOR_BLUE, -1);
 			if (k == v.size() - 1)
 			{
 				pt2 = SourcePt2CanvasPt(v[0]);
-				//pt2.x -= dx;
-				//pt2.y -= dy;
 				line(canvas, pt1, pt2, COLOR_BLUE, POINT_LINE_R);
 			}
 			else
 			{
 				pt2 = SourcePt2CanvasPt(v[k + 1]);
-				//pt2.x -= dx;
-				//pt2.y -= dy;
 				line(canvas, pt1, pt2, COLOR_BLUE, POINT_LINE_R);
 			}
 		}
@@ -1455,14 +1419,10 @@ void CLabelMeWinDlg::DrawCurrentPoly(cv::Mat& canvas)
 	for (int i = 0; i < mvRoi.size(); i++)
 	{
 		pt1 = SourcePt2CanvasPt(mvRoi[i]);
-		//pt1.x -= dx;
-		//pt1.y -= dy;
 		circle(canvas, pt1, POINT_CIRCLE_R, COLOR_GREEN, -1);
 		if (i != mvRoi.size() - 1)
 		{
 			pt2 = SourcePt2CanvasPt(mvRoi[i + 1]);
-			//pt2.x -= dx;
-			//pt2.y -= dy;
 			line(canvas, pt1, pt2 , COLOR_GREEN, POINT_LINE_R);
 		}
 			
@@ -1673,63 +1633,6 @@ BOOL CLabelMeWinDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
 	//return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
 
-//
-//void CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Point& center, cv::Mat& dst, UINT id, int scale_factor)
-//{
-//	// 缩放图片
-//	if (src.empty())
-//		return;
-//	CWnd* pwnd = GetDlgItem(id);
-//	CRect rect;
-//	pwnd->GetClientRect(rect);
-//
-//	int h, w;
-//	float ratio_h = src.rows * 1.0 / rect.Height();
-//	float ratio_w = src.cols * 1.0 / rect.Width();
-//	
-//	if (ratio_h > ratio_w)
-//	{
-//		//按H的压缩比例计算
-//		h = rect.bottom;
-//		w = src.cols / ratio_h;
-//	}
-//	else
-//	{
-//		w = rect.right;
-//		h = src.rows / ratio_w;
-//	}
-//	//w,h就是最终的比例
-//	Rect r;
-//	if (scale_factor == 2)
-//	{
-//		r.x = center.x - w;
-//		r.y = center.y - h;
-//		r.width = w * 2;
-//		r.height = h * 2;
-//	}
-//	else if (scale_factor == 4)
-//	{
-//		r.x = center.x - w / 2;
-//		r.y = center.y - h / 2;
-//		r.width = w;
-//		r.height = h;
-//	}
-//	
-//	if (r.x < 0)
-//		r.x = 0;
-//	if (r.y < 0)
-//		r.y = 0;
-//	if (r.x + r.width > src.cols - 1)
-//		r.width = src.cols - r.x - 1;
-//	if (r.y + r.height > src.rows - 1)
-//		r.height = src.rows - r.y - 1;
-//	mroiScale = r;
-//	Mat roi = src(r);
-//	resize(roi, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
-//	if (dst.channels() == 1)
-//		cvtColor(dst, dst, COLOR_GRAY2BGR);
-//}
-
 void CLabelMeWinDlg::OnRButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 在此添加消息处理程序代码和/或调用默认值
@@ -1894,18 +1797,31 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 void CLabelMeWinDlg::OnBnClickedBtnZoomOrigin()
 {
 	// TODO: 还原
+	mfScalor = 1.0f;
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
+	GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_ZOOM_UP)->EnableWindow(FALSE);
+	mbZoom = false;
+	MakeShowingImage(mSrc, mShow, IDC_PIC);
+	ConvertMatToCImage(mShow, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
 
 void CLabelMeWinDlg::OnBnClickedBtnZoomUp()
 {
 	// TODO: 放大
-	if (mfScalor >= 4.0f)
+	mfScalor += SCALE_STEP;
+	if (mfScalor >= MAX_SCALE_RATIO)
 	{
-		mfScalor = 4.0f;
+		mfScalor = MAX_SCALE_RATIO;
 		return;
 	}
 
+	//
+	MakeScaleImage(mSrc, mShow, IDC_PIC);
+	ConvertMatToCImage(mShow, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 
 }
 
@@ -1913,8 +1829,16 @@ void CLabelMeWinDlg::OnBnClickedBtnZoomUp()
 void CLabelMeWinDlg::OnBnClickedBtnZoomDown()
 {
 	// TODO: 缩小
-	if (std::abs(mfScalor - 1.0f) < 0.00001)
+	mfScalor -= SCALE_STEP;
+	if (mfScalor < 1.0f)
+	{
+		mfScalor = 1.0f;
 		return;
+	}
+	//
+	MakeScaleImage(mSrc, mShow, IDC_PIC);
+	ConvertMatToCImage(mShow, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
 void CLabelMeWinDlg::DrawCross(cv::Mat src)
@@ -1987,3 +1911,57 @@ cv::Mat CLabelMeWinDlg::CalcOffsetMat()
 	mShow(roi).copyTo(tmp(dstRoi));
 	return tmp;
 }
+
+
+void CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
+{
+	// 缩放图片
+	if (src.empty())
+		return;
+	CWnd* pwnd = GetDlgItem(id);
+	CRect rect;
+	pwnd->GetClientRect(rect);
+
+
+	//缩放对应的原图的位置
+	int sh = src.rows * 1.0f / mfScalor;
+	int sw = src.cols * 1.0f / mfScalor;
+
+	float ratio_h = sh * 1.0 / rect.Height();
+	float ratio_w = sw * 1.0 / rect.Width();
+
+	int h, w;
+	if (ratio_h > ratio_w)
+	{
+		//按H的压缩比例计算
+		h = rect.bottom;
+		w = sw / ratio_h;
+	}
+	else
+	{
+		w = rect.right;
+		h = sh / ratio_w;
+	}
+
+	//w,h就是最终的要缩放的尺寸
+	//先计算src中的roi
+	int x0 = (src.cols - sw) / 2 - 1;
+	int y0 = (src.rows - sh) / 2 - 1;
+
+	if (x0 < 0)
+		x0 = 0;
+	if (y0 < 0)
+		y0 = 0;
+	if (x0 + sw > src.cols)
+		sw = src.cols - 1 - x0;
+	if (y0 + sh > src.rows)
+		sh = src.rows - 1 - y0;
+	
+	Mat roi = src(cv::Rect(x0, y0, sw, sh));
+
+	resize(roi, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
+	if (dst.channels() == 1)
+		cvtColor(dst, dst, COLOR_GRAY2BGR);
+}
+
+

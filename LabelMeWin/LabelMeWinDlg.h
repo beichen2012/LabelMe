@@ -141,6 +141,7 @@ public:
 	cv::Point mptCurrentOrigin;
 
 	cv::Mat CalcOffsetMat();
+	void MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id);
 
 
 
