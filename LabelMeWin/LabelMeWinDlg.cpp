@@ -1367,6 +1367,41 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 	//1.先判断是否是缩放模式下
 	if (mbZoom)
 	{
+		static int drag_interval = 0;
+		drag_interval++;
+		if (drag_interval % 12 != 0)
+			return CDialogEx::OnMouseMove(nFlags, point);
+		drag_interval = 0;
+		//记录下偏移量：
+		int dx = point.x - mptButtonDown.x;
+		int dy = point.y - mptButtonDown.y;
+		mptButtonDown.x = point.x;
+		mptButtonDown.y = point.y;
+
+		//转换为原图的偏移量
+		float scale_x = mCurrentSrcSize.x * 1.0f / mShow.cols;
+		float scale_y = mCurrentSrcSize.y * 1.0f / mShow.rows;
+		dx *= scale_x;
+		dy *= scale_y;
+
+		//
+		mptCurrentOrigin.x -= dx;
+		mptCurrentOrigin.y -= dy;
+
+		if (MakeScaleImage(mSrc, mShow, IDC_PIC) < 0)
+		{
+			mptCurrentOrigin.x += dx;
+			mptCurrentOrigin.y += dy;
+			return CDialogEx::OnLButtonUp(nFlags, point);
+		}
+
+		cv::Mat tmp = mShow.clone();
+
+		DrawCross(tmp);
+		DrawPolys(tmp);
+		DrawCurrentPoly(tmp);
+		ConvertMatToCImage(tmp, mCimg);
+		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 		return CDialogEx::OnMouseMove(nFlags, point);
 	}
 
