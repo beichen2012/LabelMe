@@ -439,69 +439,118 @@ void CLabelMeWinDlg::SaveLabels()
 
 cv::Point CLabelMeWinDlg::CanvasPt2SrcPt(cv::Point pt)
 {
+	//先缩放再平移
 	if (mSrc.empty())
 	{
 		return{ -1,-1 };
 	}
 
-	// 先平稳再缩放
 	Point2f rt;
-	Point out;
-	int dx = mptCurrentOrigin.x - mShow.cols / 2;
-	int dy = mptCurrentOrigin.y - mShow.rows / 2;
-	//平移：
-	pt.x += dx;
-	pt.y += dy;
+	int dx = mptCurrentOrigin.x - mSrc.cols / 2;
+	int dy = mptCurrentOrigin.y - mSrc.rows / 2;
+	rt.x = float(mCurrentSrcSize.x) / float(mShow.cols);
+	rt.y = float(mCurrentSrcSize.y) / float(mShow.rows);
 
-	//if (mScaleRatio == 0)
+	//缩放
+	pt.x *= rt.x;
+	pt.y *= rt.y;
+	//平移
+	//pt.x += dx;
+	//pt.y += dy;
+
+	//加上ROI的偏移
+	pt.x += mCurrentSrcRoi.x;
+	pt.y += mCurrentSrcRoi.y;
+
+	return pt;
+
+
+
+
+
+
+	//if (mSrc.empty())
 	//{
-		rt.x = float(mSrc.cols) / float(mShow.cols);
-		rt.y = float(mSrc.rows) / float(mShow.rows);
-		out.x = rt.x * pt.x;
-		out.y = rt.y * pt.y;
+	//	return{ -1,-1 };
 	//}
-	//else
-	//{
-	//	rt.x = float(mroiScale.width) / float(mShow.cols);
-	//	rt.y = float(mroiScale.height) / float(mShow.rows);
-	//	out.x = mroiScale.x + pt.x * rt.x;
-	//	out.y = mroiScale.y + pt.y * rt.y;
-	//}
+	//// 先平稳再缩放
+	//Point2f rt;
+	//Point out;
+	//int dx = mptCurrentOrigin.x - mShow.cols / 2;
+	//int dy = mptCurrentOrigin.y - mShow.rows / 2;
+	////平移：
+	//pt.x += dx;
+	//pt.y += dy;
+
+	////if (mScaleRatio == 0)
+	////{
+	//	rt.x = float(mSrc.cols) / float(mShow.cols);
+	//	rt.y = float(mSrc.rows) / float(mShow.rows);
+	//	out.x = rt.x * pt.x;
+	//	out.y = rt.y * pt.y;
+	////}
+	////else
+	////{
+	////	rt.x = float(mroiScale.width) / float(mShow.cols);
+	////	rt.y = float(mroiScale.height) / float(mShow.rows);
+	////	out.x = mroiScale.x + pt.x * rt.x;
+	////	out.y = mroiScale.y + pt.y * rt.y;
+	////}
 
 
 
-	return out;
+	//return out;
 }
 
 cv::Point CLabelMeWinDlg::SourcePt2CanvasPt(cv::Point pt)
 {
+	//先平移再缩放
 	Point2f rt;
-	Point out;
-	//先缩放再平移
-	int dx = mptCurrentOrigin.x - mShow.cols / 2;
-	int dy = mptCurrentOrigin.y - mShow.rows / 2;
+	int dx = mptCurrentOrigin.x - mSrc.cols / 2;
+	int dy = mptCurrentOrigin.y - mSrc.rows / 2;
+	//pt.x -= dx;
+	//pt.y -= dy;
 
-	//if (mScaleRatio == 0)
-	//{
-		rt.x = float(mSrc.cols) / float(mShow.cols);
-		rt.y = float(mSrc.rows) / float(mShow.rows);
-		out.x = pt.x / rt.x;
-		out.y = pt.y / rt.y;
-	//}
-	//else
-	//{
-	//	rt.x = float(mroiScale.width) / float(mShow.cols);
-	//	rt.y = float(mroiScale.height) / float(mShow.rows);
-	//	out.x = (pt.x - mroiScale.x) / rt.x;
-	//	out.y = (pt.y - mroiScale.y) / rt.y;
-	//}
+	//平移到ROI坐标
+	pt.x -= mCurrentSrcRoi.x;
+	pt.y -= mCurrentSrcRoi.y;
+
+	//缩放：
+	rt.x = float(mCurrentSrcSize.x) / float(mShow.cols);
+	rt.y = float(mCurrentSrcSize.y) / float(mShow.rows);
+
+	pt.x /= rt.x;
+	pt.y /= rt.y;
+	return pt;
 
 
-	//平移：
-	out.x -= dx;
-	out.y -= dy;
+	//Point2f rt;
+	//Point out;
+	////先缩放再平移
+	//int dx = mptCurrentOrigin.x - mShow.cols / 2;
+	//int dy = mptCurrentOrigin.y - mShow.rows / 2;
 
-	return out;
+	////if (mScaleRatio == 0)
+	////{
+	//	rt.x = float(mSrc.cols) / float(mShow.cols);
+	//	rt.y = float(mSrc.rows) / float(mShow.rows);
+	//	out.x = pt.x / rt.x;
+	//	out.y = pt.y / rt.y;
+	////}
+	////else
+	////{
+	////	rt.x = float(mroiScale.width) / float(mShow.cols);
+	////	rt.y = float(mroiScale.height) / float(mShow.rows);
+	////	out.x = (pt.x - mroiScale.x) / rt.x;
+	////	out.y = (pt.y - mroiScale.y) / rt.y;
+	////}
+
+
+	////平移：
+	//out.x -= dx;
+	//out.y -= dy;
+
+	//return out;
 }
 
 cv::Point2f CLabelMeWinDlg::GetCurrentScaler()
@@ -1028,8 +1077,8 @@ void CLabelMeWinDlg::LoadImageAndShow()
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 
 	//
-	mptCurrentOrigin.x = mShow.cols / 2;
-	mptCurrentOrigin.y = mShow.rows / 2;
+	mptCurrentOrigin.x = mSrc.cols / 2;
+	mptCurrentOrigin.y = mSrc.rows / 2;
 
 	//
 	mbZoom = false;
@@ -1121,6 +1170,9 @@ void CLabelMeWinDlg::MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id)
 		w = rect.right;
 		h = src.rows / ratio_w;
 	}
+	mCurrentSrcSize.x = src.cols;
+	mCurrentSrcSize.y = src.rows;
+	mCurrentSrcRoi = { 0,0,src.cols, src.rows };
 	resize(src, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
 	if (dst.channels() == 1)
 		cvtColor(dst, dst, COLOR_GRAY2BGR);
@@ -1201,17 +1253,25 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		int dx = point.x - mptButtonDown.x;
 		int dy = point.y - mptButtonDown.y;
 
+		//转换为原图的偏移量
+		float scale_x = mCurrentSrcSize.x * 1.0f / mShow.cols;
+		float scale_y = mCurrentSrcSize.y * 1.0f / mShow.rows;
+		dx *= scale_x;
+		dy *= scale_y;
+
 		//
 		mptCurrentOrigin.x -= dx;
 		mptCurrentOrigin.y -= dy;
 
-		auto tmp = CalcOffsetMat();
-		if (tmp.empty())
+		if (MakeScaleImage(mSrc, mShow, IDC_PIC) < 0)
 		{
 			mptCurrentOrigin.x += dx;
 			mptCurrentOrigin.y += dy;
 			return CDialogEx::OnLButtonUp(nFlags, point);
 		}
+
+		cv::Mat tmp = mShow.clone();
+
 		DrawCross(tmp);
 		DrawPolys(tmp);
 		DrawCurrentPoly(tmp);
@@ -1236,6 +1296,11 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	mptStart.y = point.y - rectRoi.top;
 
 	mptStart = CanvasPt2SrcPt(mptStart);
+
+	//如果画到图像边界外面了，就不要了
+	if(mptStart.x < -1 || mptStart.y < -1)
+		return CDialogEx::OnLButtonDown(nFlags, point);;
+
 
 	if (mnCreateOrEdit == 1)
 	{ //## 编辑模式
@@ -1297,7 +1362,8 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			else
 			{
 				mvRoi.clear();
-				Mat tmp = CalcOffsetMat();
+				MakeScaleImage(mSrc, mShow, IDC_PIC);
+				Mat tmp = mShow.clone();
 				DrawPolys(tmp);
 				DrawCurrentPoly(tmp);
 				ConvertMatToCImage(tmp, mCimg);
@@ -1318,7 +1384,9 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	
 
 	//画一个小圆
-	Mat tmp = CalcOffsetMat();
+	//Mat tmp = CalcOffsetMat();
+	MakeScaleImage(mSrc, mShow, IDC_PIC);
+	Mat tmp = mShow.clone();
 	DrawPolys(tmp);
 	DrawCurrentPoly(tmp);
 	ConvertMatToCImage(tmp, mCimg);
@@ -1352,11 +1420,8 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 	//1.先判断是否是缩放模式下
 	if (mbZoom)
 	{
-		
-
 		return CDialogEx::OnMouseMove(nFlags, point);
 	}
-
 
 
 	//2, 不是缩放模式，进行正常标注
@@ -1365,6 +1430,9 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 	mptStart = CanvasPt2SrcPt(mptStart);
 
+	//如果画到图像边界外面了，就不要了
+	if (mptStart.x < -1 || mptStart.y < -1)
+		return CDialogEx::OnLButtonDown(nFlags, point);;
 
 	mvRoi.push_back(mptStart);
 	//画一个小圆
@@ -1372,7 +1440,8 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 	if (draw_intervel == 8)
 	{
 		draw_intervel = 0;
-		Mat tmp = CalcOffsetMat();
+		MakeScaleImage(mSrc, mShow, IDC_PIC);
+		Mat tmp = mShow.clone();
 		DrawPolys(tmp);
 		DrawCurrentPoly(tmp);
 		ConvertMatToCImage(tmp, mCimg);
@@ -1386,9 +1455,6 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
 {
 	Point pt1, pt2;
-	//计算偏移量
-	int dx = mptCurrentOrigin.x - canvas.cols / 2;
-	int dy = mptCurrentOrigin.y - canvas.rows / 2;
 	for (auto& i : mvPolys)
 	{
 		auto& v = i.second;
@@ -1764,7 +1830,8 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 		GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(TRUE);
 
 		//画十字线，允许鼠标拖动图片
-		auto tmp = CalcOffsetMat();
+		MakeScaleImage(mSrc, mShow, IDC_PIC);
+		Mat tmp = mShow.clone();
 		DrawCurrentPoly(tmp);
 		DrawCross(tmp);
 		DrawPolys(tmp);
@@ -1780,7 +1847,8 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 		GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(FALSE);
 
 		//取消画十字线
-		auto tmp = CalcOffsetMat();
+		MakeScaleImage(mSrc, mShow, IDC_PIC);
+		Mat tmp = mShow.clone();
 		DrawCurrentPoly(tmp);
 		//DrawCross(tmp);
 		DrawPolys(tmp);
@@ -1788,8 +1856,6 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 		ConvertMatToCImage(tmp, mCimg);
 		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 	}
-
-
 
 }
 
@@ -1802,8 +1868,17 @@ void CLabelMeWinDlg::OnBnClickedBtnZoomOrigin()
 	GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_ZOOM_UP)->EnableWindow(FALSE);
 	mbZoom = false;
+	mCurrentSrcSize.x = mSrc.cols;
+	mCurrentSrcSize.y = mSrc.rows;
+	mCurrentSrcRoi = { 0, 0, mSrc.cols, mSrc.rows };
+	mptCurrentOrigin.x = mSrc.cols / 2;
+	mptCurrentOrigin.y = mSrc.rows / 2;
 	MakeShowingImage(mSrc, mShow, IDC_PIC);
-	ConvertMatToCImage(mShow, mCimg);
+	Mat tmp = mShow.clone();
+	DrawCurrentPoly(tmp);
+	DrawPolys(tmp);
+	DrawCurrentPoly(tmp);
+	ConvertMatToCImage(tmp, mCimg);
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
@@ -1820,7 +1895,11 @@ void CLabelMeWinDlg::OnBnClickedBtnZoomUp()
 
 	//
 	MakeScaleImage(mSrc, mShow, IDC_PIC);
-	ConvertMatToCImage(mShow, mCimg);
+	Mat tmp = mShow.clone();
+	DrawCross(tmp);
+	DrawPolys(tmp);
+	DrawCurrentPoly(tmp);
+	ConvertMatToCImage(tmp, mCimg);
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 
 }
@@ -1835,15 +1914,25 @@ void CLabelMeWinDlg::OnBnClickedBtnZoomDown()
 		mfScalor = 1.0f;
 		return;
 	}
+	if (std::abs(mfScalor - 1.0f) < 0.0001)
+	{
+		OnBnClickedBtnZoomOrigin();
+		return;
+	}
 	//
 	MakeScaleImage(mSrc, mShow, IDC_PIC);
-	ConvertMatToCImage(mShow, mCimg);
+	Mat tmp = mShow.clone();
+	DrawCurrentPoly(tmp);
+	DrawCross(tmp);
+	DrawPolys(tmp);
+	DrawCurrentPoly(tmp);
+	ConvertMatToCImage(tmp, mCimg);
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
 void CLabelMeWinDlg::DrawCross(cv::Mat src)
 {
-	auto color = cv::Scalar{ 0,255,0 };
+	auto color = cv::Scalar{ 255,255,255 };
 	int h2 = src.rows / 2;
 	int w2 = src.cols / 2;
 	//cv::line(src, { 0,h2 }, { src.cols - 1, h2 }, color, 2);
@@ -1852,15 +1941,16 @@ void CLabelMeWinDlg::DrawCross(cv::Mat src)
 	//九宫格
 	int h3 = src.rows / 3;
 	int w3 = src.cols / 3;
-	line(src, { 0,h3 }, { src.cols - 1, h3 }, color, 2);
-	line(src, { 0,h3 * 2 }, { src.cols - 1, h3 * 2 }, color, 2);
-	line(src, { w3, 0 }, { w3, src.rows - 1 }, color, 2);
-	line(src, { w3 * 2, 0 }, { w3 * 2, src.rows - 1 }, color, 2);
+	line(src, { 0,h3 }, { src.cols - 1, h3 }, color, 1);
+	line(src, { 0,h3 * 2 }, { src.cols - 1, h3 * 2 }, color, 1);
+	line(src, { w3, 0 }, { w3, src.rows - 1 }, color, 1);
+	line(src, { w3 * 2, 0 }, { w3 * 2, src.rows - 1 }, color, 1);
 
 }
 
 cv::Mat CLabelMeWinDlg::CalcOffsetMat()
 {
+
 	Mat tmp = Mat::zeros(mShow.size(), CV_8UC3);
 
 	//拷贝
@@ -1913,11 +2003,11 @@ cv::Mat CLabelMeWinDlg::CalcOffsetMat()
 }
 
 
-void CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
+int CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
 {
 	// 缩放图片
 	if (src.empty())
-		return;
+		return -1;
 	CWnd* pwnd = GetDlgItem(id);
 	CRect rect;
 	pwnd->GetClientRect(rect);
@@ -1947,21 +2037,66 @@ void CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
 	//先计算src中的roi
 	int x0 = (src.cols - sw) / 2 - 1;
 	int y0 = (src.rows - sh) / 2 - 1;
+	int dx = src.cols / 2 - mptCurrentOrigin.x;
+	int dy = src.rows / 2 - mptCurrentOrigin.y;
+	x0 -= dx;
+	y0 -= dy;
+	cv::Mat mroi = cv::Mat::zeros({ sw, sh }, CV_8UC3);
 
-	if (x0 < 0)
-		x0 = 0;
-	if (y0 < 0)
-		y0 = 0;
-	if (x0 + sw > src.cols)
-		sw = src.cols - 1 - x0;
-	if (y0 + sh > src.rows)
-		sh = src.rows - 1 - y0;
+	cv::Rect srcRoi{ x0,y0,sw, sh };
+	cv::Rect dstRoi{ 0,0,sw, sh };
+
+	mCurrentSrcSize.x = sw;
+	mCurrentSrcSize.y = sh;
+	mCurrentSrcRoi = srcRoi;
+
+	if (srcRoi.x < 0)
+	{
+		dstRoi.x = -srcRoi.x;
+		srcRoi.x = 0;
+	}
+	if (srcRoi.y < 0)
+	{
+		dstRoi.y = -srcRoi.y;
+		srcRoi.y = 0;
+	}
+	if (srcRoi.x + srcRoi.width > mSrc.cols)
+	{
+		srcRoi.width = mSrc.cols - 1 - srcRoi.x;
+		dstRoi.width = srcRoi.width;
+	}
+	if (srcRoi.y + srcRoi.height > mSrc.rows)
+	{
+		srcRoi.height = mSrc.rows - 1 - srcRoi.y;
+		dstRoi.height = srcRoi.height;
+	}
+
+	if (dstRoi.x + dstRoi.width > sw)
+	{
+		dstRoi.width = sw - dstRoi.x - 1;
+		srcRoi.width = dstRoi.width;
+	}
+
+	if (dstRoi.y + dstRoi.height > sh)
+	{
+		dstRoi.height = sh - dstRoi.y - 1;
+		srcRoi.height = dstRoi.height;
+	}
+
+
+	if (srcRoi.width <= 0 || srcRoi.height <= 0 || srcRoi.x < 0 || srcRoi.y < 0 ||
+		dstRoi.width <= 0 || dstRoi.height <= 0 || dstRoi.x < 0 || dstRoi.y < 0)
+	{
+		return -1;
+	}
+
+	src(srcRoi).copyTo(mroi(dstRoi));
 	
-	Mat roi = src(cv::Rect(x0, y0, sw, sh));
 
-	resize(roi, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
+	resize(mroi, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
 	if (dst.channels() == 1)
 		cvtColor(dst, dst, COLOR_GRAY2BGR);
+	return 0;
 }
 
 

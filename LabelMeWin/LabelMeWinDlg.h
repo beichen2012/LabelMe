@@ -139,10 +139,12 @@ public:
 	void DrawCross(cv::Mat src);
 	cv::Point mptButtonDown;
 	cv::Point mptCurrentOrigin;
-
+	
 	cv::Mat CalcOffsetMat();
-	void MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id);
+	int MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id);
 
+	cv::Point mCurrentSrcSize;
+	cv::Rect mCurrentSrcRoi;
 
 
 public:
