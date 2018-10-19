@@ -139,8 +139,6 @@ public:
 	void DrawCross(cv::Mat src);
 	cv::Point mptButtonDown;
 	cv::Point mptCurrentOrigin;
-	
-	cv::Mat CalcOffsetMat();
 	int MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id);
 
 	cv::Point mCurrentSrcSize;
@@ -177,9 +175,6 @@ public:
 	afx_msg void OnBnClickedBtnLoadLabel();
 	afx_msg void OnBnClickedCheckAutosave();
 	afx_msg void OnNMClickListPolys(NMHDR *pNMHDR, LRESULT *pResult);
-	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
-	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
-	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnNMDblclkListPolys(NMHDR *pNMHDR, LRESULT *pResult);
 	afx_msg void OnBnClickedCheckZoom();
