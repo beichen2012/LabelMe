@@ -132,6 +132,18 @@ public:
 	cv::Point2f GetCurrentScaler();
 
 
+
+	/*Ëõ·ÅÊ¹ÄÜ*/
+	bool mbZoom;
+	float mfScalor;
+	void DrawCross(cv::Mat src);
+	cv::Point mptButtonDown;
+	cv::Point mptCurrentOrigin;
+
+	cv::Mat CalcOffsetMat();
+
+
+
 public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedBtnOpen();
@@ -167,4 +179,8 @@ public:
 	afx_msg void OnRButtonUp(UINT nFlags, CPoint point);
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	afx_msg void OnNMDblclkListPolys(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnBnClickedCheckZoom();
+	afx_msg void OnBnClickedBtnZoomOrigin();
+	afx_msg void OnBnClickedBtnZoomUp();
+	afx_msg void OnBnClickedBtnZoomDown();
 };
