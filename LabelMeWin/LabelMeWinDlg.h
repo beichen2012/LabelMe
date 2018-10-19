@@ -145,6 +145,9 @@ public:
 	cv::Rect mCurrentSrcRoi;
 
 
+	//×´Ì¬À¸
+	CStatusBarCtrl mStatusBar;
+
 public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedBtnOpen();

@@ -319,6 +319,20 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mfScalor = 1.0f;
 	mbZoom = false;
 
+	//状态栏
+	mStatusBar.Create(WS_CHILD | WS_VISIBLE | SBT_OWNERDRAW, CRect(0, 0, 0, 0), this, 0);
+	mStatusBar.GetClientRect(rect);
+	
+	int strPartDim[4] = { rect.Width() / 4,rect.Width() / 4 * 2,rect.Width() / 4 * 3 , -1 };
+	mStatusBar.SetParts(4, strPartDim);
+	
+	//设置状态栏文本
+	mStatusBar.SetText(_T(""), 0, 0);
+	mStatusBar.SetText(_T(""), 1, 0);
+	mStatusBar.SetText(_T(""), 2, 0);
+	mStatusBar.SetText(_T(""), 3, 0);
+
+
 	LOGD("Init dialog...");
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -1009,6 +1023,12 @@ void CLabelMeWinDlg::LoadImageAndShow()
 	mbZoom = false;
 	GetDlgItem(IDC_BTN_ZOOM_UP)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(FALSE);
+
+	//
+	CString msg;
+	msg.Format(_T("第 %d 张/共 %d 张"), mCurrentIndex + 1, mvFiles.size());
+	mStatusBar.SetText(msg, 0, 0);
+
 }
 
 void CLabelMeWinDlg::ConvertMatToCImage(cv::Mat & src, CImage & cimg)
@@ -1101,6 +1121,12 @@ void CLabelMeWinDlg::MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id)
 	resize(src, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
 	if (dst.channels() == 1)
 		cvtColor(dst, dst, COLOR_GRAY2BGR);
+	mStatusBar.SetText(_T("100%"), 3, 0);
+	CString msg;
+	msg.Format(_T("当前: (%d, %d, %d, %d)"), mCurrentSrcRoi.x, mCurrentSrcRoi.y, mCurrentSrcRoi.width, mCurrentSrcRoi.height);
+	mStatusBar.SetText(msg, 2, 0);
+	msg.Format(_T("图像: %d x %d"), src.cols, src.rows);
+	mStatusBar.SetText(msg, 1, 0);
 }
 
 void CLabelMeWinDlg::DrawCImageCenter(ATL::CImage & image, CWnd * pwnd, CRect & dstRect, COLORREF bkColor)
@@ -1584,7 +1610,7 @@ BOOL CLabelMeWinDlg::PreTranslateMessage(MSG* pMsg)
 	return CDialogEx::PreTranslateMessage(pMsg);
 }
 
-
+#pragma region 缩放功能
 
 /*缩放使能*/
 void CLabelMeWinDlg::OnBnClickedCheckZoom()
@@ -1647,7 +1673,6 @@ void CLabelMeWinDlg::OnBnClickedBtnZoomOrigin()
 	mptCurrentOrigin.y = mSrc.rows / 2;
 	MakeShowingImage(mSrc, mShow, IDC_PIC);
 	Mat tmp = mShow.clone();
-	DrawCurrentPoly(tmp);
 	DrawPolys(tmp);
 	DrawCurrentPoly(tmp);
 	ConvertMatToCImage(tmp, mCimg);
@@ -1659,7 +1684,7 @@ void CLabelMeWinDlg::OnBnClickedBtnZoomUp()
 {
 	// TODO: 放大
 	mfScalor += SCALE_STEP;
-	if (mfScalor >= MAX_SCALE_RATIO)
+	if (mfScalor > MAX_SCALE_RATIO + 0.00001)
 	{
 		mfScalor = MAX_SCALE_RATIO;
 		return;
@@ -1688,13 +1713,24 @@ void CLabelMeWinDlg::OnBnClickedBtnZoomDown()
 	}
 	if (std::abs(mfScalor - 1.0f) < 0.0001)
 	{
-		OnBnClickedBtnZoomOrigin();
+		mfScalor = 1.0f;
+		mCurrentSrcSize.x = mSrc.cols;
+		mCurrentSrcSize.y = mSrc.rows;
+		mCurrentSrcRoi = { 0, 0, mSrc.cols, mSrc.rows };
+		mptCurrentOrigin.x = mSrc.cols / 2;
+		mptCurrentOrigin.y = mSrc.rows / 2;
+		MakeShowingImage(mSrc, mShow, IDC_PIC);
+		Mat tmp = mShow.clone();
+		DrawCross(tmp);
+		DrawPolys(tmp);
+		DrawCurrentPoly(tmp);
+		ConvertMatToCImage(tmp, mCimg);
+		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 		return;
 	}
 	//
 	MakeScaleImage(mSrc, mShow, IDC_PIC);
 	Mat tmp = mShow.clone();
-	DrawCurrentPoly(tmp);
 	DrawCross(tmp);
 	DrawPolys(tmp);
 	DrawCurrentPoly(tmp);
@@ -1808,7 +1844,15 @@ int CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
 	resize(mroi, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
 	if (dst.channels() == 1)
 		cvtColor(dst, dst, COLOR_GRAY2BGR);
+
+	CString msg;
+	msg.Format(_T("%d"), int(mfScalor * 100));
+	msg += _T("%");
+	mStatusBar.SetText(msg, 3, 0);
+	msg.Format(_T("当前: (%d, %d, %d, %d)"), mCurrentSrcRoi.x, mCurrentSrcRoi.y, mCurrentSrcRoi.width, mCurrentSrcRoi.height);
+	mStatusBar.SetText(msg, 2, 0);
+
 	return 0;
 }
 
-
+#pragma endregion
