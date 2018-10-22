@@ -324,16 +324,17 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mStatusBar.Create(WS_CHILD | WS_VISIBLE | SBT_OWNERDRAW, CRect(0, 0, 0, 0), this, 0);
 	mStatusBar.GetClientRect(rect);
 	
-	int strPartDim[4] = { rect.Width() / 4,rect.Width() / 4 * 2,rect.Width() / 4 * 3 , -1 };
-	mStatusBar.SetParts(4, strPartDim);
+	int strPartDim[5] = { rect.Width() / 5,rect.Width() / 5 * 2,rect.Width() / 5 * 3 ,rect.Width() / 5 * 4, -1 };
+	mStatusBar.SetParts(5, strPartDim);
 	
 	//设置状态栏文本
 	mStatusBar.SetText(_T(""), 0, 0);
 	mStatusBar.SetText(_T(""), 1, 0);
 	mStatusBar.SetText(_T(""), 2, 0);
 	mStatusBar.SetText(_T(""), 3, 0);
+	mStatusBar.SetText(_T(""), 4, 0);
 
-
+	mStatusBar.SetText(_T("创建模式"), 0, 0);
 	LOGD("Init dialog...");
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -989,6 +990,7 @@ void CLabelMeWinDlg::OnBnClickedBtnCreatePoly()
 	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(TRUE);
+	mStatusBar.SetText(_T("创建模式"), 0, 0);
 }
 
 
@@ -1026,6 +1028,7 @@ void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(FALSE);
+	mStatusBar.SetText(_T("编辑模式"), 0, 0);
 }
 #pragma endregion
 
@@ -1058,7 +1061,7 @@ void CLabelMeWinDlg::LoadImageAndShow()
 	//
 	CString msg;
 	msg.Format(_T("第 %d 张/共 %d 张"), mCurrentIndex + 1, mvFiles.size());
-	mStatusBar.SetText(msg, 0, 0);
+	mStatusBar.SetText(msg, 1, 0);
 
 }
 
@@ -1152,12 +1155,12 @@ void CLabelMeWinDlg::MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id)
 	resize(src, dst, Size(w, h), 0.0, 0.0, INTER_CUBIC);
 	if (dst.channels() == 1)
 		cvtColor(dst, dst, COLOR_GRAY2BGR);
-	mStatusBar.SetText(_T("100%"), 3, 0);
+	mStatusBar.SetText(_T("100%"), 4, 0);
 	CString msg;
 	msg.Format(_T("当前: (%d, %d, %d, %d)"), mCurrentSrcRoi.x, mCurrentSrcRoi.y, mCurrentSrcRoi.width, mCurrentSrcRoi.height);
-	mStatusBar.SetText(msg, 2, 0);
+	mStatusBar.SetText(msg, 3, 0);
 	msg.Format(_T("图像: %d x %d"), src.cols, src.rows);
-	mStatusBar.SetText(msg, 1, 0);
+	mStatusBar.SetText(msg, 2, 0);
 }
 
 void CLabelMeWinDlg::DrawCImageCenter(ATL::CImage & image, CWnd * pwnd, CRect & dstRect, COLORREF bkColor)
@@ -1703,7 +1706,6 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 		DrawCurrentPoly(tmp);
 		ConvertMatToCImage(tmp, mCimg);
 		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
-
 	}
 	else
 	{
@@ -1849,8 +1851,8 @@ int CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
 
 	//w,h就是最终的要缩放的尺寸
 	//先计算src中的roi
-	int x0 = (src.cols - sw) / 2 - 1;
-	int y0 = (src.rows - sh) / 2 - 1;
+	int x0 = (src.cols - sw) / 2 ;
+	int y0 = (src.rows - sh) / 2 ;
 	int dx = src.cols / 2 - mptCurrentOrigin.x;
 	int dy = src.rows / 2 - mptCurrentOrigin.y;
 	x0 -= dx;
@@ -1914,9 +1916,9 @@ int CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
 	CString msg;
 	msg.Format(_T("%d"), int(mfScalor * 100));
 	msg += _T("%");
-	mStatusBar.SetText(msg, 3, 0);
+	mStatusBar.SetText(msg, 4, 0);
 	msg.Format(_T("当前: (%d, %d, %d, %d)"), mCurrentSrcRoi.x, mCurrentSrcRoi.y, mCurrentSrcRoi.width, mCurrentSrcRoi.height);
-	mStatusBar.SetText(msg, 2, 0);
+	mStatusBar.SetText(msg, 3, 0);
 
 	return 0;
 }
