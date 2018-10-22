@@ -10,6 +10,7 @@
 #include "DlgAddedLabel.h"
 #include <fstream>
 #include <rapidjson\document.h>
+#include <regex>
 using namespace cv;
 
 //最多放大倍率
@@ -819,6 +820,35 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 		MessageBox(_T("选择的文件夹中没有图片文件！"));
 		return;
 	}
+	//排序, value-index
+	std::vector<std::pair<int, int>> sortIndex;
+	std::regex re(R"((\d)+)");
+	std::cmatch match;
+	char filename[4096];
+	for (int i = 0; i < mvFiles.size(); i++)
+	{
+		auto ele = std::pair<int, int>(-1, i);
+		memset(filename, 0, sizeof(filename));
+		_splitpath(mvFiles[i].c_str(), NULL, NULL, filename, NULL);
+
+		if (std::regex_search(filename, match, re))
+		{
+			//ele.first = std::atoi(match[0].str());
+			ele.first = std::stoi(match[0].str());
+		}
+		sortIndex.emplace_back(ele);
+	}
+	std::sort(sortIndex.begin(), sortIndex.end(), [](const std::pair<int, int>& left, const std::pair<int, int>& right) {
+		return left.first < right.first;
+	});
+	//
+	auto tmpFiles = std::move(mvFiles);
+	for (int i = 0; i < sortIndex.size(); i++)
+	{
+		mvFiles.emplace_back(tmpFiles[sortIndex[i].second]);
+	}
+
+
 	mCurrentFile = CString(mvFiles[0].c_str());
 	mCurrentIndex = 0;
 	//把mvFiles里面的路径，去掉根目录
