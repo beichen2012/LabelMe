@@ -783,12 +783,13 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 {
 	// TODO: 选择目录
 	ENTER_FUNC;
-	mRootDir = SelectFolder();
-	if (mRootDir == _T(""))
+	auto&& root_dir = SelectFolder();
+	if (root_dir == _T(""))
 	{
 		MessageBox(_T("没有选择文件夹！"));
 		return;
 	}
+	mRootDir = root_dir;
 	//查询目录下所有的图片
 	std::string strRoot;
 	CBrowseDir br;
