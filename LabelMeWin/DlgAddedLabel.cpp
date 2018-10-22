@@ -43,6 +43,11 @@ void CDlgAddedLabel::OnBnClickedOk()
 {
 	// TODO: 在此添加控件通知处理程序代码
 	UpdateData(TRUE);
+	if (mEditLabel.Trim() == _T(""))
+	{
+		MessageBox(_T("不能使用空标签！"));
+		return;
+	}
 	CDialogEx::OnOK();
 }
 
