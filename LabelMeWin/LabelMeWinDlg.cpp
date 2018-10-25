@@ -21,6 +21,13 @@ using namespace cv;
 #define new DEBUG_NEW
 #endif
 
+//
+#define INDICATOR_EDIT 0
+#define INDICATOR_CREATE_POLY 1
+#define INDICATOR_CREATE_RECT 2
+
+//多边形模式至少要5个点
+#define MIN_POLY_POINTS 5
 
 // CLabelMeWinDlg 对话框
 
@@ -48,6 +55,7 @@ void CLabelMeWinDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST_FILES, mListFiles);
 	DDX_Control(pDX, IDC_LIST_POLYS, mListROIs);
 	DDX_Control(pDX, IDC_LIST_LABELS, mListLabels);
+	DDX_Control(pDX, IDC_BTN_CREATE_RECT, mBtnCreateRect);
 }
 
 BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
@@ -75,6 +83,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_ZOOM_ORIGIN, &CLabelMeWinDlg::OnBnClickedBtnZoomOrigin)
 	ON_BN_CLICKED(IDC_BTN_ZOOM_UP, &CLabelMeWinDlg::OnBnClickedBtnZoomUp)
 	ON_BN_CLICKED(IDC_BTN_ZOOM_DOWN, &CLabelMeWinDlg::OnBnClickedBtnZoomDown)
+	ON_BN_CLICKED(IDC_BTN_CREATE_RECT, &CLabelMeWinDlg::OnBnClickedBtnCreateRect)
 END_MESSAGE_MAP()
 
 double PolygonTest(std::vector<cv::Point>& c, Point2f pt, bool measureDist)
@@ -244,7 +253,7 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mBtnOpen.SetAlign(CButtonST::ST_ALIGN_VERT);
 	mBtnOpen.SetTooltipText(_T("打开一个图片"));
 
-	mBtnOpenDir.SetIcon(IDI_ICON_FILE);
+	mBtnOpenDir.SetIcon(IDI_ICON_OPEN_DIR);
 	mBtnOpenDir.SetAlign(CButtonST::ST_ALIGN_VERT);
 	mBtnOpenDir.SetTooltipText(_T("打开一个目录"));
 
@@ -263,6 +272,11 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mBtnCreatePoly.SetIcon(IDI_ICON_OBJECTS);
 	mBtnCreatePoly.SetAlign(CButtonST::ST_ALIGN_VERT);
 	mBtnCreatePoly.SetTooltipText(_T("创建多边形"));
+
+	mBtnCreateRect.SetIcon(IDI_ICON_RECT);
+	mBtnCreateRect.SetAlign(CButtonST::ST_ALIGN_VERT);
+	mBtnCreateRect.SetTooltipText(_T("创建矩形标注"));
+
 
 	mBtnDeletePoly.SetIcon(IDI_ICON_CANCEL);
 	mBtnDeletePoly.SetAlign(CButtonST::ST_ALIGN_VERT);
@@ -305,13 +319,12 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mbAutoSave = true;
 	((CButton *)GetDlgItem(IDC_CHECK_AUTOSAVE))->SetCheck(1);
 
-	mnCreateOrEdit = 0;
+	//默认是创建多边形模式
+	mnStatusIndicator = INDICATOR_CREATE_POLY;
 	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_CREATE_RECT)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(TRUE);
-
-	mbRButtonDown = false;
-	mnRButtonState = 0;
 
 	// 缩放使能
 	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
@@ -334,7 +347,7 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mStatusBar.SetText(_T(""), 3, 0);
 	mStatusBar.SetText(_T(""), 4, 0);
 
-	mStatusBar.SetText(_T("创建模式"), 0, 0);
+	mStatusBar.SetText(_T("创建多边模式"), 0, 0);
 	LOGD("Init dialog...");
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -425,8 +438,8 @@ void CLabelMeWinDlg::SaveLabels()
 	}
 	TAnnoInfo outInfo;
 	outInfo.va = std::move(va);
-	outInfo.x_scale = float(mSrc.cols) / float(mShow.cols);
-	outInfo.y_scale = float(mSrc.rows) / float(mShow.rows);
+	outInfo.width = mSrc.cols;
+	outInfo.height = mSrc.rows;
 	//
 	char drive[4096] = { 0 };
 	char dir[4096] = { 0 };
@@ -639,19 +652,22 @@ void CLabelMeWinDlg::FindCurrentLabels()
 	Value& v = d["va"];
 	for (SizeType i = 0; i < v.Size(); i++)
 	{
-		//std::pair<std::string, std::vector<cv::Point>> roi;
 		std::string label;
 		std::vector<cv::Point> pts;
 		auto& json_ia = v[i];
 		label = json_ia["label"].GetString();
-		auto& cell = json_ia["pts"].GetArray();
-		for (SizeType j = 0; j < cell.Size(); j++)
+
+		if (json_ia.HasMember("pts"))
 		{
-			int x = cell[j]["x"].GetInt();
-			int y = cell[j]["y"].GetInt();
-			pts.push_back({ x,y });
+			auto& cell = json_ia["pts"].GetArray();
+			for (SizeType j = 0; j < cell.Size(); j++)
+			{
+				int x = cell[j]["x"].GetInt();
+				int y = cell[j]["y"].GetInt();
+				pts.push_back({ x,y });
+			}
+			mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(pts)));
 		}
-		mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(pts)));
 	}
 
 	// 标签
@@ -888,7 +904,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 {
 	// TODO: 下一张
-	if (mCurrentIndex == mvFiles.size() - 1)
+	if (mCurrentIndex == mvFiles.size() - 1 || mvFiles.size() <= 0)
 	{
 		MessageBox(_T("已经是最后一张了"));
 		return;
@@ -994,11 +1010,23 @@ void CLabelMeWinDlg::OnBnClickedBtnSave()
 void CLabelMeWinDlg::OnBnClickedBtnCreatePoly()
 {
 	// TODO: 创建多边形
-	mnCreateOrEdit = 0;
+	mnStatusIndicator = INDICATOR_CREATE_POLY;
 	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_CREATE_RECT)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(FALSE);
 	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(TRUE);
-	mStatusBar.SetText(_T("创建模式"), 0, 0);
+	mStatusBar.SetText(_T("创建多边形模式"), 0, 0);
+}
+
+void CLabelMeWinDlg::OnBnClickedBtnCreateRect()
+{
+	// TODO: 创建矩形
+	mnStatusIndicator = INDICATOR_CREATE_RECT;
+	GetDlgItem(IDC_BTN_CREATE_RECT)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(TRUE);
+	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(FALSE);
+	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(TRUE);
+	mStatusBar.SetText(_T("创建矩形模式"), 0, 0);
 }
 
 
@@ -1026,7 +1054,7 @@ void CLabelMeWinDlg::OnBnClickedBtnDeletePoly()
 void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 {
 	// TODO: 编辑多边形
-	mnCreateOrEdit = 1;
+	mnStatusIndicator = INDICATOR_EDIT;
 	mvRoi.clear();
 	mbLButtonDown = false;
 	Mat tmp = mShow.clone();
@@ -1034,6 +1062,7 @@ void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 	ConvertMatToCImage(tmp, mCimg);
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 	GetDlgItem(IDC_BTN_CREATE_POLY)->EnableWindow(TRUE);
+	GetDlgItem(IDC_BTN_CREATE_RECT)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_DELETE_POLY)->EnableWindow(TRUE);
 	GetDlgItem(IDC_BTN_EDIT_POLY)->EnableWindow(FALSE);
 	mStatusBar.SetText(_T("编辑模式"), 0, 0);
@@ -1296,31 +1325,21 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		return CDialogEx::OnLButtonDown(nFlags, point);;
 
 
-	if (mnCreateOrEdit == 1)
+	if (mnStatusIndicator == INDICATOR_EDIT)
 	{ //## 编辑模式
-
 		//查看当前点，在哪个Poly里面
-		int idx = -1;
 		std::vector<std::pair<int, float>> vidx;
 		for (int i = 0; i < mvPolys.size(); i++)
 		{
 			auto& v = mvPolys[i].second;
-			//std::vector<cv::Point2f> c;
-			//for (auto& j : v)
-			//	c.push_back(Point2f(j.x, j.y));
 			auto ret = PolygonTest(v, Point2f(mptStart.x, mptStart.y), false);
 			if (ret >= 0)
 			{
-				//记录下i
-				//idx = i;
-				//break;
-				//vidx.push_back(i);
 				float area = cv::contourArea(v, false);
 				vidx.emplace_back(std::pair<int, float>(i, area));
 			}
 		}
 
-		//if(idx < 0)
 		if(vidx.size() <= 0)
 			return CDialogEx::OnLButtonUp(nFlags, point);
 		//sort
@@ -1329,51 +1348,96 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			return left.second < right.second;
 		});
 		//画
-		idx = vidx[0].first;
+		int idx = vidx[0].first;
 		ItemHighLight(idx, mListROIs);
 		mCurrentPolyIdx = idx;
 		DrawIdxRedPolys(idx);
-
-		// 映射ROI列表
-		
-
 		return CDialogEx::OnLButtonUp(nFlags, point);
 	}
 	
-	//## 创建模式
-	//保存
-	mvRoi.push_back(mptStart);
-	if (mvRoi.size() > 4)
+	//## 创建多边形模式
+	if (mnStatusIndicator == INDICATOR_CREATE_POLY)
 	{
-		//判断是否闭合
-		auto dist = GetPtDistI2(mptStart, mvRoi[0]);
-		auto scaler = GetCurrentScaler();
-		if (dist < MIN_NEIGBOR * scaler.x)
+		//保存
+		mvRoi.push_back(mptStart);
+		if (mvRoi.size() > MIN_POLY_POINTS)
 		{
-			//说明是闭合了
-			//1. 对话框，选择或输入标签
-			std::string label;
-			CDlgAddedLabel* dlg = new CDlgAddedLabel(msLabels);
-			if (dlg->DoModal() == IDOK)
+			//判断是否闭合
+			auto dist = GetPtDistI2(mptStart, mvRoi[0]);
+			auto scaler = GetCurrentScaler();
+			if (dist < MIN_NEIGBOR * scaler.x)
 			{
-				auto txt = dlg->mEditLabel;
-				char* p = cstring_to_char(txt);
-				//
-				msLabels.insert(std::string(p));
-				label = p;
-				delete[] p;
+				//说明是闭合了
+				//1. 对话框，选择或输入标签
+				std::string label;
+				CDlgAddedLabel dlg(msLabels);
+				if (dlg.DoModal() == IDOK)
+				{
+					auto txt = dlg.mEditLabel;
+					char* p = cstring_to_char(txt);
+					//
+					msLabels.insert(std::string(p));
+					label = p;
+					delete[] p;
+				}
+				else
+				{
+					mvRoi.clear();
+					MakeScaleImage(mSrc, mShow, IDC_PIC);
+					Mat tmp = mShow.clone();
+					DrawPolys(tmp);
+					DrawCurrentPoly(tmp);
+					ConvertMatToCImage(tmp, mCimg);
+					DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+					return CDialogEx::OnLButtonUp(nFlags, point);;
+				}
+
+				//2. 保存进行下一个
+				auto pa = std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(mvRoi));
+				mvPolys.emplace_back(std::move(pa));
+				//3. 刷新标签列表
+				RefreshLabelLists();
+				RefreshROILists();
 			}
-			else
-			{
-				mvRoi.clear();
-				MakeScaleImage(mSrc, mShow, IDC_PIC);
-				Mat tmp = mShow.clone();
-				DrawPolys(tmp);
-				DrawCurrentPoly(tmp);
-				ConvertMatToCImage(tmp, mCimg);
-				DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
-				return CDialogEx::OnLButtonUp(nFlags, point);;
-			}
+		}
+
+		//画一个小圆
+		MakeScaleImage(mSrc, mShow, IDC_PIC);
+		Mat tmp = mShow.clone();
+		DrawPolys(tmp);
+		DrawCurrentPoly(tmp);
+		ConvertMatToCImage(tmp, mCimg);
+		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+	}
+
+	if (mnStatusIndicator == INDICATOR_CREATE_RECT)
+	{
+		if (mptButtonDown.x == point.x && mptButtonDown.y == point.y)
+		{
+			return CDialogEx::OnLButtonUp(nFlags, point);
+		}
+		std::string label;
+		CDlgAddedLabel dlg(msLabels);
+		if (dlg.DoModal() == IDOK)
+		{
+			auto txt = dlg.mEditLabel;
+			char* p = cstring_to_char(txt);
+			msLabels.insert(std::string(p));
+			label = p;
+			delete[] p;
+
+			//保存矩形有四个点
+			cv::Point pt1;
+			pt1.x = mptButtonDown.x - rectRoi.left;
+			pt1.y = mptButtonDown.y - rectRoi.top;
+			pt1 = CanvasPt2SrcPt(pt1);
+
+			mvRoi.clear();
+			mvRoi.push_back(pt1);
+			mvRoi.push_back({ pt1.x, mptStart.y });
+			mvRoi.push_back(mptStart);
+			mvRoi.push_back({ mptStart.x, pt1.y });
+			//mvRoi.push_back(pt1);
 
 			//2. 保存进行下一个
 			auto pa = std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(mvRoi));
@@ -1382,15 +1446,16 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			RefreshLabelLists();
 			RefreshROILists();
 		}
-	}
+		mvRoi.clear();
+		MakeScaleImage(mSrc, mShow, IDC_PIC);
+		Mat tmp = mShow.clone();
+		DrawPolys(tmp);
+		DrawCurrentPoly(tmp);
+		ConvertMatToCImage(tmp, mCimg);
+		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 
-	//画一个小圆
-	MakeScaleImage(mSrc, mShow, IDC_PIC);
-	Mat tmp = mShow.clone();
-	DrawPolys(tmp);
-	DrawCurrentPoly(tmp);
-	ConvertMatToCImage(tmp, mCimg);
-	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+	}
+	
 
 	CDialogEx::OnLButtonUp(nFlags, point);
 }
@@ -1460,7 +1525,7 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 	}
 
 	// 2.1不是缩放模式, 如果是 编辑模式，直接退出
-	if (mnCreateOrEdit == 1)
+	if (mnStatusIndicator == INDICATOR_EDIT)
 	{
 		return CDialogEx::OnMouseMove(nFlags, point);
 	}
@@ -1476,20 +1541,57 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 	if (mptStart.x < -1 || mptStart.y < -1)
 		return CDialogEx::OnLButtonDown(nFlags, point);;
 
-	mvRoi.push_back(mptStart);
-	//画一个小圆
-	static int draw_intervel = 0;
-	if (draw_intervel == 8)
+	//2.3 判断是不是多边形模式
+	if (mnStatusIndicator == INDICATOR_CREATE_POLY)
 	{
-		draw_intervel = 0;
-		MakeScaleImage(mSrc, mShow, IDC_PIC);
-		Mat tmp = mShow.clone();
-		DrawPolys(tmp);
-		DrawCurrentPoly(tmp);
-		ConvertMatToCImage(tmp, mCimg);
-		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+		mvRoi.push_back(mptStart);
+		//画一个小圆
+		static int draw_intervel = 0;
+		if (draw_intervel == 8)
+		{
+			draw_intervel = 0;
+			MakeScaleImage(mSrc, mShow, IDC_PIC);
+			Mat tmp = mShow.clone();
+			DrawPolys(tmp);
+			DrawCurrentPoly(tmp);
+			ConvertMatToCImage(tmp, mCimg);
+			DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+		}
+		draw_intervel++;
 	}
-	draw_intervel++;
+
+	//2.4 判断是不是 矩形框模型
+	if (mnStatusIndicator == INDICATOR_CREATE_RECT)
+	{
+		//左键点下的点
+		static int draw_rect_interval = 0;
+		if (draw_rect_interval == 8)
+		{
+			cv::Point pt1;
+			pt1.x = mptButtonDown.x - rectRoi.left;
+			pt1.y = mptButtonDown.y - rectRoi.top;
+			pt1 = CanvasPt2SrcPt(pt1);
+
+			mvRoi.clear();
+			mvRoi.push_back(pt1);
+			mvRoi.push_back({ pt1.x, mptStart.y });
+			mvRoi.push_back(mptStart);
+			mvRoi.push_back({ mptStart.x, pt1.y });
+			mvRoi.push_back(pt1);
+
+			MakeScaleImage(mSrc, mShow, IDC_PIC);
+			Mat tmp = mShow.clone();
+			DrawPolys(tmp);
+			DrawCurrentPoly(tmp);
+			ConvertMatToCImage(tmp, mCimg);
+			DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+
+			draw_rect_interval = 0;
+
+		}
+		draw_rect_interval++;
+	}
+	
 	
 	return CDialogEx::OnMouseMove(nFlags, point);
 }
@@ -1521,9 +1623,6 @@ void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
 void CLabelMeWinDlg::DrawCurrentPoly(cv::Mat& canvas)
 {
 	Point pt1, pt2;
-	//计算偏移量
-	int dx = mptCurrentOrigin.x - canvas.cols / 2;
-	int dy = mptCurrentOrigin.y - canvas.rows / 2;
 	for (int i = 0; i < mvRoi.size(); i++)
 	{
 		pt1 = SourcePt2CanvasPt(mvRoi[i]);
@@ -1681,7 +1780,7 @@ BOOL CLabelMeWinDlg::PreTranslateMessage(MSG* pMsg)
 			//捕获ESC事件
 
 			//
-			if (!mbLButtonDown && !mbRButtonDown && !mSrc.empty())
+			if (!mbLButtonDown && !mSrc.empty())
 			{
 				//如果鼠标不是在按下状态，并且已经加载了图片
 				//那么，取消最后一个点的编辑

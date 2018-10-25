@@ -227,10 +227,12 @@
     <Image Include="res\labels.ico" />
     <Image Include="res\next.ico" />
     <Image Include="res\objects.ico" />
+    <Image Include="res\open-dir.ico" />
     <Image Include="res\open.ico" />
     <Image Include="res\open.png" />
     <Image Include="res\open64.ico" />
     <Image Include="res\prev.ico" />
+    <Image Include="res\rect.ico" />
     <Image Include="res\save.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

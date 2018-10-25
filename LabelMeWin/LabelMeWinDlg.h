@@ -39,11 +39,10 @@ REFLECTION(TImgAnno, label, pts);
 typedef struct _ImgAnnoInfo
 {
 	std::vector<TImgAnno> va;
-	float x_scale;	//无用
-	float y_scale;	//无用
-	//std::string imageName;
+	int width;
+	int height;
 }TAnnoInfo;
-REFLECTION(TAnnoInfo, va, x_scale, y_scale/*, imageName*/);
+REFLECTION(TAnnoInfo, va, width, height);
 
 
 // CLabelMeWinDlg 对话框
@@ -94,13 +93,12 @@ public:
 	cv::Point mptEnd;
 	std::vector<cv::Point> mvRoi;
 	std::vector<std::pair<std::string, std::vector<cv::Point>>> mvPolys;
+
+	//标识当前的contours 索引
 	int mCurrentPolyIdx;
 
-	int mnCreateOrEdit; //0 for create ; 1 for edit
-
-	//右键
-	bool mbRButtonDown;
-	int mnRButtonState;
+	//标识当前的模式，编辑，多边形还是矩形
+	int mnStatusIndicator; 
 
 public:
 
@@ -157,6 +155,7 @@ public:
 	CButtonST mBtnPrevImage;
 	CButtonST mBtnSave;
 	CButtonST mBtnCreatePoly;
+	CButtonST mBtnCreateRect;
 	CButtonST mBtnDeletePoly;
 	CButtonST mBtnEditPoly;
 	CButtonST mBtnLoadLabel;
@@ -184,4 +183,6 @@ public:
 	afx_msg void OnBnClickedBtnZoomOrigin();
 	afx_msg void OnBnClickedBtnZoomUp();
 	afx_msg void OnBnClickedBtnZoomDown();
+	
+	afx_msg void OnBnClickedBtnCreateRect();
 };
