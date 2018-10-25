@@ -1700,6 +1700,10 @@ BOOL CLabelMeWinDlg::PreTranslateMessage(MSG* pMsg)
 			//取消默认关闭窗体事件
 			return TRUE;
 		}
+		if (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT || pMsg->wParam == VK_UP || pMsg->wParam == VK_DOWN)
+		{
+			return TRUE;
+		}
 	}
 
 	return CDialogEx::PreTranslateMessage(pMsg);
@@ -1950,3 +1954,4 @@ int CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
 }
 
 #pragma endregion
+
