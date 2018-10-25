@@ -113,7 +113,7 @@ public:
 	void ItemHighLight(int idx, CListCtrl& list);
 
 	//Õº∆¨œ‘ æ
-	void LoadImageAndShow();
+	int LoadImageAndShow();
 	void ConvertMatToCImage(cv::Mat & src, CImage & cimg);
 	void MakeShowingImage(cv::Mat & src, cv::Mat & dst, UINT id);
 	void DrawCImageCenter(ATL::CImage& image, CWnd* pwnd, CRect& dstRect, COLORREF bkColor = RGB(105, 105, 105));

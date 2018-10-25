@@ -751,6 +751,15 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 
 	mCurrentFile = filePath;
 	mCurrentIndex = 0;
+
+	//
+	int ret = LoadImageAndShow();
+	if (ret < 0)
+	{
+		return;
+	}
+
+
 	char dir[4096] = { 0 };
 	char drive[4096] = { 0 };
 	char filename[4096] = { 0 };
@@ -766,7 +775,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	mRootDir = mRootDir.Left(mRootDir.GetLength() - 1);
 
 	//读取文件到内存
-	LoadImageAndShow();
+	
 	RefreshFileLists();
 	mvPolys.clear();
 	mvRoi.clear();
@@ -1032,7 +1041,7 @@ void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 #pragma endregion
 
 #pragma region 图像显示
-void CLabelMeWinDlg::LoadImageAndShow()
+int CLabelMeWinDlg::LoadImageAndShow()
 {
 	auto* p = cstring_to_char(mCurrentFile);
 	mSrc = imread(p);
@@ -1040,7 +1049,7 @@ void CLabelMeWinDlg::LoadImageAndShow()
 	if (mSrc.empty())
 	{
 		MessageBox(_T("无法读取文件：\r\n") + mCurrentFile);
-		return;
+		return -1;
 	}
 
 	//显示
@@ -1062,6 +1071,7 @@ void CLabelMeWinDlg::LoadImageAndShow()
 	msg.Format(_T("第 %d 张/共 %d 张"), mCurrentIndex + 1, mvFiles.size());
 	mStatusBar.SetText(msg, 1, 0);
 
+	return 0;
 }
 
 void CLabelMeWinDlg::ConvertMatToCImage(cv::Mat & src, CImage & cimg)
