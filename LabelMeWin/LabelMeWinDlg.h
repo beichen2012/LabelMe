@@ -110,7 +110,7 @@ public:
 	void RefreshFileLists();
 	void RefreshLabelLists();
 	void RefreshROILists();
-	void ItemHighLight(int idx_no, int idx_yes, CListCtrl& list);
+	void ItemHighLight(int idx, CListCtrl& list);
 
 	//Õº∆¨œ‘ æ
 	void LoadImageAndShow();

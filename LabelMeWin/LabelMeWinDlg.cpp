@@ -570,10 +570,6 @@ void CLabelMeWinDlg::OnNMClickListFiles(NMHDR *pNMHDR, LRESULT *pResult)
 	if (mvFiles.size() <= idx)
 		return;
 
-	//
-
-
-
 	//保存
 	bool bSave = false;
 	if (mvPolys.size() != 0)
@@ -712,16 +708,19 @@ void CLabelMeWinDlg::RefreshROILists()
 	}
 }
 
-void CLabelMeWinDlg::ItemHighLight(int idx_no, int idx_yes, CListCtrl& list)
+void CLabelMeWinDlg::ItemHighLight(int idx, CListCtrl& list)
 {
 	//List 
 	list.SetFocus();
-	if(idx_no >= 0)
-		list.SetItemState(idx_no, 0, LVIS_SELECTED | LVIS_FOCUSED);
-	if (idx_yes >= 0)
+	auto a = list.GetItemCount();
+	for (int i = 0; i < a; i++)
 	{
-		list.SetItemState(idx_yes, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
-		list.EnsureVisible(idx_yes, FALSE);
+		list.SetItemState(i, 0, LVIS_SELECTED | LVIS_FOCUSED);
+	}
+	if (idx >= 0)
+	{
+		list.SetItemState(idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
+		list.EnsureVisible(idx, FALSE);
 	}
 }
 #pragma endregion
@@ -772,7 +771,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	mvPolys.clear();
 	mvRoi.clear();
 	RefreshROILists();
-	ItemHighLight(-1, 0, mListFiles);
+	ItemHighLight(0, mListFiles);
 	mbLButtonDown = false;
 
 	//查找是否有本文件的标注文件，读入并显示
@@ -870,7 +869,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	LoadImageAndShow();
 	FindCurrentLabels();
 	//List 
-	ItemHighLight(-1, 0, mListFiles);
+	ItemHighLight(0, mListFiles);
 	mbLButtonDown = false;
 
 	LEAVE_FUNC;
@@ -920,7 +919,7 @@ void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 	LoadImageAndShow();
 	FindCurrentLabels();
 	//List 
-	ItemHighLight(mCurrentIndex - 1, mCurrentIndex, mListFiles);
+	ItemHighLight(mCurrentIndex, mListFiles);
 
 
 }
@@ -969,7 +968,7 @@ void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
 	LoadImageAndShow();
 	FindCurrentLabels();
 	//List 
-	ItemHighLight(mCurrentIndex + 1, mCurrentIndex, mListFiles);
+	ItemHighLight(mCurrentIndex, mListFiles);
 }
 
 void CLabelMeWinDlg::OnBnClickedBtnSave()
@@ -1321,7 +1320,7 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		});
 		//画
 		idx = vidx[0].first;
-		ItemHighLight(mCurrentPolyIdx, idx, mListROIs);
+		ItemHighLight(idx, mListROIs);
 		mCurrentPolyIdx = idx;
 		DrawIdxRedPolys(idx);
 
