@@ -1292,6 +1292,7 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 
 		//查看当前点，在哪个Poly里面
 		int idx = -1;
+		std::vector<std::pair<int, float>> vidx;
 		for (int i = 0; i < mvPolys.size(); i++)
 		{
 			auto& v = mvPolys[i].second;
@@ -1302,15 +1303,24 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			if (ret >= 0)
 			{
 				//记录下i
-				idx = i;
-				break;
+				//idx = i;
+				//break;
+				//vidx.push_back(i);
+				float area = cv::contourArea(v, false);
+				vidx.emplace_back(std::pair<int, float>(i, area));
 			}
 		}
 
-		if(idx < 0)
+		//if(idx < 0)
+		if(vidx.size() <= 0)
 			return CDialogEx::OnLButtonUp(nFlags, point);
-
+		//sort
+		std::sort(vidx.begin(), vidx.end(), [](const std::pair<int, float>& left, const std::pair<int, float>& right)
+		{
+			return left.second < right.second;
+		});
 		//画
+		idx = vidx[0].first;
 		ItemHighLight(mCurrentPolyIdx, idx, mListROIs);
 		mCurrentPolyIdx = idx;
 		DrawIdxRedPolys(idx);
@@ -1385,6 +1395,7 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 	if(!mbLButtonDown)
 		return CDialogEx::OnMouseMove(nFlags, point);
 
+	
 	//按下鼠标左键，拖动图片
 	//记录下点
 	CRect rect;
@@ -1439,8 +1450,14 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 		return CDialogEx::OnMouseMove(nFlags, point);
 	}
 
+	// 2.1不是缩放模式, 如果是 编辑模式，直接退出
+	if (mnCreateOrEdit == 1)
+	{
+		return CDialogEx::OnMouseMove(nFlags, point);
+	}
 
-	//2, 不是缩放模式，进行正常标注
+
+	//2.2, 不是缩放模式,也不是编辑模式，进行正常标注
 	mptStart.x = point.x - rectRoi.left;
 	mptStart.y = point.y - rectRoi.top;
 
