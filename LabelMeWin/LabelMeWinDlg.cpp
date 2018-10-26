@@ -1363,9 +1363,11 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 		if (mvRoi.size() > MIN_POLY_POINTS)
 		{
 			//判断是否闭合
-			auto dist = GetPtDistI2(mptStart, mvRoi[0]);
-			auto scaler = GetCurrentScaler();
-			if (dist < MIN_NEIGBOR * scaler.x)
+			auto pt1 = SourcePt2CanvasPt(mvRoi[0]);
+			auto pt2 = SourcePt2CanvasPt(mptStart);
+			auto dist = GetPtDistI2(pt1, pt2);
+			//auto scaler = GetCurrentScaler();
+			if (dist < MIN_NEIGBOR )
 			{
 				//说明是闭合了
 				//1. 对话框，选择或输入标签
