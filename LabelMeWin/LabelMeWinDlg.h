@@ -13,6 +13,7 @@
 #include <opencv2/opencv.hpp>
 #include <iguana/json.hpp>
 #include "spdhelper.hpp"
+#include <libDMHelper.h>
 
 #define MIN_NEIGBOR 5
 #define POINT_CIRCLE_R 2
@@ -145,6 +146,9 @@ public:
 
 	//×´Ì¬À¸
 	CStatusBarCtrl mStatusBar;
+
+	//FOR DCM FILES
+	std::shared_ptr<IDiReader> mpDCMReader;
 
 public:
 	afx_msg void OnBnClickedOk();

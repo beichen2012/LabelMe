@@ -31,6 +31,8 @@ using namespace cv;
 
 // CLabelMeWinDlg 对话框
 
+//for dcm
+#pragma comment(lib, "DMHelper.lib")
 
 
 CLabelMeWinDlg::CLabelMeWinDlg(CWnd* pParent /*=NULL*/)
@@ -348,6 +350,13 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	mStatusBar.SetText(_T(""), 4, 0);
 
 	mStatusBar.SetText(_T("创建多边模式"), 0, 0);
+
+	//dcm
+	mpDCMReader = std::shared_ptr<IDiReader>(GetDiReaderObj(), [](IDiReader* p) {
+		if (p) DestroyDiReaderObj(&p); });
+
+	((CButton *)GetDlgItem(IDC_RADIO_JPG))->SetCheck(TRUE);//选上
+
 	LOGD("Init dialog...");
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -752,7 +761,17 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	BOOL isOpen = TRUE;     //是否打开(否则为保存) 
 	CString defaultDir = _T("./");   //默认打开的文件路径 
 	CString fileName = _T("");         //默认打开的文件名 
-	CString filter = _T("图像 (*.bmp; *.jpg; *.png; *.tiff)|*.bmp;*.jpg;*.png;*.tiff||");   //文件过虑的类型 
+	CString filter;
+	if (((CButton *)GetDlgItem(IDC_RADIO_JPG))->GetCheck() == 1)
+	{
+		filter = _T("图像 (*.bmp; *.jpg; *.png; *.tiff)|*.bmp;*.jpg;*.png;*.tiff||");
+	}
+	else
+	{
+		filter = _T("医学图像(*.dcm)|*.dcm||");
+	}
+	//CString filter = _T("图像 (*.bmp; *.jpg; *.png; *.tiff)|*.bmp;*.jpg;*.png;*.tiff||");   //文件过虑的类型 
+	//CString filter = _T("医学图像(*.dcm)|*.dcm||");
 	CFileDialog openFileDlg(isOpen, defaultDir, fileName, OFN_HIDEREADONLY | OFN_READONLY, filter, NULL);
 	if (openFileDlg.DoModal() == IDOK)
 	{
@@ -824,21 +843,31 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	strRoot = pr;
 	delete[] pr;
 
-	auto r1 = br.BeginBrowseFilenames("*.jpg");
-	auto r2 = br.BeginBrowseFilenames("*.bmp");
-	auto r3 = br.BeginBrowseFilenames("*.tiff");
-	auto r4 = br.BeginBrowseFilenames("*.png");
+	if (((CButton *)GetDlgItem(IDC_RADIO_JPG))->GetCheck() == 1)
+	{
+		auto r1 = br.BeginBrowseFilenames("*.jpg");
+		auto r2 = br.BeginBrowseFilenames("*.bmp");
+		auto r3 = br.BeginBrowseFilenames("*.tiff");
+		auto r4 = br.BeginBrowseFilenames("*.png");
 
-	LOGD("find jpg in root folder, num is: -> {}", r1.size());
-	LOGD("find bmp in root folder, num is: -> {}", r2.size());
-	LOGD("find tiff in root folder, num is: -> {}", r3.size());
-	LOGD("find png in root folder, num is: -> {}", r4.size());
+		LOGD("find jpg in root folder, num is: -> {}", r1.size());
+		LOGD("find bmp in root folder, num is: -> {}", r2.size());
+		LOGD("find tiff in root folder, num is: -> {}", r3.size());
+		LOGD("find png in root folder, num is: -> {}", r4.size());
 
-	mvFiles.clear();
-	mvFiles.insert(mvFiles.end(), r1.begin(), r1.end());
-	mvFiles.insert(mvFiles.end(), r2.begin(), r2.end());
-	mvFiles.insert(mvFiles.end(), r3.begin(), r3.end());
-	mvFiles.insert(mvFiles.end(), r4.begin(), r4.end());
+		mvFiles.clear();
+		mvFiles.insert(mvFiles.end(), r1.begin(), r1.end());
+		mvFiles.insert(mvFiles.end(), r2.begin(), r2.end());
+		mvFiles.insert(mvFiles.end(), r3.begin(), r3.end());
+		mvFiles.insert(mvFiles.end(), r4.begin(), r4.end());
+	}
+	else
+	{
+		auto r1 = br.BeginBrowseFilenames("*.dcm");
+		mvFiles.clear();
+		mvFiles.insert(mvFiles.end(), r1.begin(), r1.end());
+	}
+	
 
 	//
 	if (mvFiles.size() <= 0)
@@ -1073,8 +1102,39 @@ void CLabelMeWinDlg::OnBnClickedBtnEditPoly()
 int CLabelMeWinDlg::LoadImageAndShow()
 {
 	auto* p = cstring_to_char(mCurrentFile);
-	mSrc = imread(p);
-	delete[] p;
+
+	char ext[4096] = { 0 };
+	_splitpath(p, NULL, NULL, NULL, ext);
+
+	if (strcmp(ext, ".dcm") == 0)
+	{
+		//for dcm 
+		int imgNum = 0;
+		mpDCMReader->LoadDCMFile(p);
+		TDiImage* imgs;
+		mpDCMReader->Decode2Img(&imgs, &imgNum);
+		delete[] p;
+
+		if (imgNum <= 0)
+		{
+			MessageBox(_T("无法读取文件：\r\n") + mCurrentFile);
+			return -1;
+		}
+
+		//
+		int type = CV_8UC3;
+		if (imgs[0].channels == 1)
+			type = CV_8UC1;
+		Mat m(imgs[0].height, imgs[0].width, type, imgs[0].data, imgs[0].step);
+		mSrc = m.clone();
+		ReleaseDiImage(imgs, imgNum);
+	}
+	else
+	{
+		mSrc = imread(p);
+		delete[] p;
+	}
+
 	if (mSrc.empty())
 	{
 		MessageBox(_T("无法读取文件：\r\n") + mCurrentFile);
