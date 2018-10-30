@@ -88,7 +88,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_CREATE_RECT, &CLabelMeWinDlg::OnBnClickedBtnCreateRect)
 END_MESSAGE_MAP()
 
-double PolygonTest(std::vector<cv::Point>& c, Point2f pt, bool measureDist)
+double PolygonTest(std::vector<cv::Point2f>& c, Point2f pt, bool measureDist)
 {
 
 
@@ -103,7 +103,7 @@ double PolygonTest(std::vector<cv::Point>& c, Point2f pt, bool measureDist)
 	if (total == 0)
 		return measureDist ? -DBL_MAX : -1;
 
-	const Point* cnt = &c[0];
+	const Point2f* cnt = &c[0];
 	const Point2f* cntf = (const Point2f*)cnt;
 
 	if (!is_float && !measureDist && ip.x == pt.x && ip.y == pt.y)
@@ -140,7 +140,7 @@ double PolygonTest(std::vector<cv::Point>& c, Point2f pt, bool measureDist)
 	else
 	{
 		Point2f v0, v;
-		Point iv;
+		Point2f iv;
 
 		if (is_float)
 		{
@@ -399,7 +399,7 @@ HCURSOR CLabelMeWinDlg::OnQueryDragIcon()
 
 
 
-float CLabelMeWinDlg::GetPtDistI2(cv::Point& p1, cv::Point& p2)
+float CLabelMeWinDlg::GetPtDistI2(cv::Point2f& p1, cv::Point2f& p2)
 {
 	float dist = (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y);
 	dist = sqrt(dist);
@@ -472,7 +472,7 @@ void CLabelMeWinDlg::SaveLabels()
 	}
 }
 
-cv::Point CLabelMeWinDlg::CanvasPt2SrcPt(cv::Point pt)
+cv::Point2f CLabelMeWinDlg::CanvasPt2SrcPt(cv::Point2f pt)
 {
 	//先缩放再平移
 	if (mSrc.empty())
@@ -497,7 +497,7 @@ cv::Point CLabelMeWinDlg::CanvasPt2SrcPt(cv::Point pt)
 	return pt;
 }
 
-cv::Point CLabelMeWinDlg::SourcePt2CanvasPt(cv::Point pt)
+cv::Point2f CLabelMeWinDlg::SourcePt2CanvasPt(cv::Point2f pt)
 {
 	//先平移再缩放
 	Point2f rt;
@@ -662,7 +662,7 @@ void CLabelMeWinDlg::FindCurrentLabels()
 	for (SizeType i = 0; i < v.Size(); i++)
 	{
 		std::string label;
-		std::vector<cv::Point> pts;
+		std::vector<cv::Point2f> pts;
 		auto& json_ia = v[i];
 		label = json_ia["label"].GetString();
 
@@ -673,9 +673,9 @@ void CLabelMeWinDlg::FindCurrentLabels()
 			{
 				int x = cell[j]["x"].GetInt();
 				int y = cell[j]["y"].GetInt();
-				pts.push_back({ x,y });
+				pts.push_back(cv::Point2f(x,y));
 			}
-			mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(pts)));
+			mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(pts)));
 		}
 	}
 
@@ -1455,7 +1455,7 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 				}
 
 				//2. 保存进行下一个
-				auto pa = std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(mvRoi));
+				auto pa = std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(mvRoi));
 				mvPolys.emplace_back(std::move(pa));
 				//3. 刷新标签列表
 				RefreshLabelLists();
@@ -1489,7 +1489,7 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			delete[] p;
 
 			//保存矩形有四个点
-			cv::Point pt1;
+			cv::Point2f pt1;
 			pt1.x = mptButtonDown.x - rectRoi.left;
 			pt1.y = mptButtonDown.y - rectRoi.top;
 			pt1 = CanvasPt2SrcPt(pt1);
@@ -1502,7 +1502,7 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			//mvRoi.push_back(pt1);
 
 			//2. 保存进行下一个
-			auto pa = std::pair<std::string, std::vector<cv::Point>>(std::move(label), std::move(mvRoi));
+			auto pa = std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(mvRoi));
 			mvPolys.emplace_back(std::move(pa));
 			//3. 刷新标签列表
 			RefreshLabelLists();
@@ -1629,7 +1629,7 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 		static int draw_rect_interval = 0;
 		if (draw_rect_interval == 8)
 		{
-			cv::Point pt1;
+			cv::Point2f pt1;
 			pt1.x = mptButtonDown.x - rectRoi.left;
 			pt1.y = mptButtonDown.y - rectRoi.top;
 			pt1 = CanvasPt2SrcPt(pt1);

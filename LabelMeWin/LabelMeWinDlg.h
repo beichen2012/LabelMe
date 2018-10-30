@@ -90,10 +90,10 @@ public:
 
 	//
 	bool mbLButtonDown;
-	cv::Point mptStart;
-	cv::Point mptEnd;
-	std::vector<cv::Point> mvRoi;
-	std::vector<std::pair<std::string, std::vector<cv::Point>>> mvPolys;
+	cv::Point2f mptStart;
+	cv::Point2f mptEnd;
+	std::vector<cv::Point2f> mvRoi;
+	std::vector<std::pair<std::string, std::vector<cv::Point2f>>> mvPolys;
 
 	//标识当前的contours 索引
 	int mCurrentPolyIdx;
@@ -121,13 +121,13 @@ public:
 	void DrawIdxRedPolys(int idx);
 
 	//
-	float GetPtDistI2(cv::Point& p1, cv::Point& p2);
+	float GetPtDistI2(cv::Point2f& p1, cv::Point2f& p2);
 
 	void SaveLabels();
 
 
-	cv::Point CanvasPt2SrcPt(cv::Point pt);
-	cv::Point SourcePt2CanvasPt(cv::Point pt);
+	cv::Point2f CanvasPt2SrcPt(cv::Point2f pt);
+	cv::Point2f SourcePt2CanvasPt(cv::Point2f pt);
 	cv::Point2f GetCurrentScaler();
 
 
@@ -137,7 +137,7 @@ public:
 	float mfScalor;
 	void DrawCross(cv::Mat src);
 	cv::Point mptButtonDown;
-	cv::Point mptCurrentOrigin;
+	cv::Point2f mptCurrentOrigin;
 	int MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id);
 
 	cv::Point mCurrentSrcSize;
