@@ -38,6 +38,8 @@ using namespace cv;
 #define WINDOW_WIDTH_MAX 800
 #define WINDOW_WIDTH_TIC 10
 
+#define WINDOW_INF 1000000
+
 // CLabelMeWinDlg 对话框
 
 //for dcm
@@ -447,6 +449,24 @@ void CLabelMeWinDlg::SaveLabels()
 	}
 	//标注文件
 	std::vector<TImgAnno> va;
+
+	for (int i = 0; i < mvPolys.size(); i++)
+	{
+		auto& k = mvPolys[i];
+		TImgAnno ta;
+		ta.label = k.first;
+		ta.pos = mvWindows[i].first;
+		ta.width = mvWindows[i].second;
+		for (auto& j : k.second)
+		{
+			TPtAnno pt;
+			pt.x = j.x;
+			pt.y = j.y;
+			ta.pts.push_back(pt);
+		}
+		va.push_back(ta);
+	}
+/*
 	for (auto& i : mvPolys)
 	{
 		TImgAnno ta;
@@ -459,7 +479,7 @@ void CLabelMeWinDlg::SaveLabels()
 			ta.pts.push_back(pt);
 		}
 		va.push_back(ta);
-	}
+	}*/
 	TAnnoInfo outInfo;
 	outInfo.va = std::move(va);
 	outInfo.width = mSrc.cols;
@@ -559,9 +579,12 @@ void CLabelMeWinDlg::ShowPosAndWidth()
 
 void CLabelMeWinDlg::SetVisableWindow(BOOL flag)
 {
-	GetDlgItem(IDC_RADIO_WINDOW_POS)->ShowWindow(flag);
-	GetDlgItem(IDC_RADIO_WINDOW_WIDTH)->ShowWindow(flag);
-	mSliderWindow.ShowWindow(flag);
+	//GetDlgItem(IDC_RADIO_WINDOW_POS)->ShowWindow(flag);
+	//GetDlgItem(IDC_RADIO_WINDOW_WIDTH)->ShowWindow(flag);
+	//mSliderWindow.ShowWindow(flag);
+	GetDlgItem(IDC_RADIO_WINDOW_POS)->EnableWindow(flag);
+	GetDlgItem(IDC_RADIO_WINDOW_WIDTH)->EnableWindow(flag);
+	mSliderWindow.EnableWindow(flag);
 }
 
 void CLabelMeWinDlg::SetWindowPosControl()
@@ -663,20 +686,24 @@ void CLabelMeWinDlg::OnNMClickListFiles(NMHDR *pNMHDR, LRESULT *pResult)
 	}
 	//清空
 	mvPolys.clear();
+	mvWindows.clear();
 	mvRoi.clear();
 	RefreshROILists();
 
 
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[idx].c_str());
 	mCurrentIndex = idx;
-	LoadImageAndShow();
 	FindCurrentLabels();
+	LoadImageAndShow();
+	
 	//
 
 }
 
 void CLabelMeWinDlg::FindCurrentLabels()
 {
+	mDCMPos = WINDOW_INF + 1;
+	mDCMWidth = WINDOW_INF + 1;
 	if (mCurrentFile.IsEmpty())
 		return;
 	char drive[4096] = { 0 };
@@ -690,6 +717,7 @@ void CLabelMeWinDlg::FindCurrentLabels()
 
 	//load json
 	mvPolys.clear();
+	mvWindows.clear();
 	using namespace rapidjson;
 	Document d;
 	char* pd = ReadWholeFile(fn.c_str());
@@ -710,7 +738,7 @@ void CLabelMeWinDlg::FindCurrentLabels()
 		auto& json_ia = v[i];
 		label = json_ia["label"].GetString();
 
-		if (json_ia.HasMember("pts"))
+		if (json_ia.HasMember("pts") && json_ia.HasMember("pos") && json_ia.HasMember("width"))
 		{
 			auto& cell = json_ia["pts"].GetArray();
 			for (SizeType j = 0; j < cell.Size(); j++)
@@ -720,6 +748,11 @@ void CLabelMeWinDlg::FindCurrentLabels()
 				pts.push_back(cv::Point2f(x,y));
 			}
 			mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(pts)));
+			auto win_pos = json_ia["pos"].GetInt();
+			auto win_width = json_ia["width"].GetInt();
+			mvWindows.emplace_back(std::pair<int, int>(win_pos, win_width));
+			mDCMPos = win_pos;
+			mDCMWidth = win_width;
 		}
 	}
 
@@ -734,10 +767,10 @@ void CLabelMeWinDlg::FindCurrentLabels()
 	RefreshROILists();
 
 	//显示 
-	Mat tmp = mShow.clone();
-	DrawPolys(tmp);
-	ConvertMatToCImage(tmp, mCimg);
-	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+	//Mat tmp = mShow.clone();
+	//DrawPolys(tmp);
+	//ConvertMatToCImage(tmp, mCimg);
+	//DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
 void CLabelMeWinDlg::RefreshFileLists()
@@ -832,6 +865,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	mCurrentIndex = 0;
 
 	//
+	//查找是否有本文件的标注文件，读入并显示
 	int ret = LoadImageAndShow();
 	if (ret < 0)
 	{
@@ -857,13 +891,14 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	
 	RefreshFileLists();
 	mvPolys.clear();
+	mvWindows.clear();
 	mvRoi.clear();
 	RefreshROILists();
 	ItemHighLight(0, mListFiles);
 	mbLButtonDown = false;
 
-	//查找是否有本文件的标注文件，读入并显示
 	FindCurrentLabels();
+	LoadImageAndShow();
 	LEAVE_FUNC;
 }
 
@@ -975,6 +1010,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	//列表显示图片
 	RefreshFileLists();
 	mvPolys.clear();
+	mvWindows.clear();
 	mvRoi.clear();
 	RefreshROILists();
 
@@ -1025,12 +1061,14 @@ void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 	//清空
 	mvPolys.clear();
 	mvRoi.clear();
+	mvWindows.clear();
 	RefreshROILists();
 
 	mCurrentIndex++;
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
-	LoadImageAndShow();
 	FindCurrentLabels();
+	LoadImageAndShow();
+	
 	//List 
 	ItemHighLight(mCurrentIndex, mListFiles);
 
@@ -1073,13 +1111,15 @@ void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
 	}
 	//清空
 	mvPolys.clear();
+	mvWindows.clear();
 	mvRoi.clear();
 	RefreshROILists();
 
 	mCurrentIndex--;
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
-	LoadImageAndShow();
 	FindCurrentLabels();
+	LoadImageAndShow();
+	
 	//List 
 	ItemHighLight(mCurrentIndex, mListFiles);
 }
@@ -1128,6 +1168,7 @@ void CLabelMeWinDlg::OnBnClickedBtnDeletePoly()
 
 	//
 	mvPolys.erase(mvPolys.begin() + mCurrentPolyIdx);
+	mvWindows.erase(mvWindows.begin() + mCurrentPolyIdx);
 	RefreshROILists();
 
 	Mat tmp = mShow.clone();
@@ -1170,6 +1211,10 @@ int CLabelMeWinDlg::LoadImageAndShow()
 		//for dcm 
 		int imgNum = 0;
 		mpDCMReader->LoadDCMFile(p);
+		if (mDCMPos < WINDOW_INF && mDCMWidth < WINDOW_INF)
+		{
+			mpDCMReader->SetWindow(mDCMWidth, mDCMPos);
+		}
 		TDiImage* imgs;
 		mpDCMReader->Decode2Img(&imgs, &imgNum);
 		delete[] p;
@@ -1204,7 +1249,9 @@ int CLabelMeWinDlg::LoadImageAndShow()
 
 	//显示
 	MakeShowingImage(mSrc, mShow, IDC_PIC);
-	ConvertMatToCImage(mShow, mCimg);
+	auto tmp = mShow.clone();
+	DrawPolys(tmp);
+	ConvertMatToCImage(tmp, mCimg);
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 
 	//
@@ -1517,7 +1564,9 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 
 				//2. 保存进行下一个
 				auto pa = std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(mvRoi));
+				auto pw = std::pair<int, int>(int(mDCMPos), int(mDCMWidth));
 				mvPolys.emplace_back(std::move(pa));
+				mvWindows.emplace_back(pw);
 				//3. 刷新标签列表
 				RefreshLabelLists();
 				RefreshROILists();
@@ -1564,7 +1613,9 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 
 			//2. 保存进行下一个
 			auto pa = std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(mvRoi));
+			auto pw = std::pair<int, int>(int(mDCMPos), int(mDCMWidth));
 			mvPolys.emplace_back(std::move(pa));
+			mvWindows.emplace_back(pw);
 			//3. 刷新标签列表
 			RefreshLabelLists();
 			RefreshROILists();
@@ -1948,6 +1999,7 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 		mbZoom = true;
 		GetDlgItem(IDC_BTN_ZOOM_UP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(TRUE);
+		SetVisableWindow(FALSE);
 
 		//画十字线，允许鼠标拖动图片
 		MakeScaleImage(mSrc, mShow, IDC_PIC);
@@ -1964,6 +2016,7 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 		mbZoom = false;
 		GetDlgItem(IDC_BTN_ZOOM_UP)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(FALSE);
+		SetVisableWindow(TRUE);
 
 		//取消画十字线
 		MakeScaleImage(mSrc, mShow, IDC_PIC);

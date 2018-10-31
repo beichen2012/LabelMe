@@ -34,8 +34,11 @@ typedef struct _tImgAnno
 {
 	std::string label;
 	std::vector<TPtAnno> pts;
+	//for dcm window pos and window width 
+	int pos;
+	int width;
 }TImgAnno;
-REFLECTION(TImgAnno, label, pts);
+REFLECTION(TImgAnno, label, pts, pos, width);
 
 typedef struct _ImgAnnoInfo
 {
@@ -94,6 +97,7 @@ public:
 	cv::Point2f mptEnd;
 	std::vector<cv::Point2f> mvRoi;
 	std::vector<std::pair<std::string, std::vector<cv::Point2f>>> mvPolys;
+	std::vector<std::pair<int, int>> mvWindows;
 
 	//标识当前的contours 索引
 	int mCurrentPolyIdx;
