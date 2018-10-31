@@ -150,6 +150,13 @@ public:
 	//FOR DCM FILES
 	std::shared_ptr<IDiReader> mpDCMReader;
 
+	double mDCMWidth;
+	double mDCMPos;
+
+	void ShowPosAndWidth();
+	void SetVisableWindow(BOOL flag);
+	void SetWindowPosControl();
+
 public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedBtnOpen();
@@ -189,4 +196,8 @@ public:
 	afx_msg void OnBnClickedBtnZoomDown();
 	
 	afx_msg void OnBnClickedBtnCreateRect();
+	CSliderCtrl mSliderWindow;
+	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
+	afx_msg void OnBnClickedRadioWindowPos();
+	afx_msg void OnBnClickedRadioWindowWidth();
 };

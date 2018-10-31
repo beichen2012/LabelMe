@@ -29,6 +29,15 @@ using namespace cv;
 //多边形模式至少要5个点
 #define MIN_POLY_POINTS 5
 
+//窗宽窗位设置
+#define WINDOW_POS_MIN -100 
+#define WINDOW_POS_MAX 500
+#define WINDOW_POS_TIC 10
+
+#define WINDOW_WIDTH_MIN 100
+#define WINDOW_WIDTH_MAX 800
+#define WINDOW_WIDTH_TIC 10
+
 // CLabelMeWinDlg 对话框
 
 //for dcm
@@ -58,6 +67,7 @@ void CLabelMeWinDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST_POLYS, mListROIs);
 	DDX_Control(pDX, IDC_LIST_LABELS, mListLabels);
 	DDX_Control(pDX, IDC_BTN_CREATE_RECT, mBtnCreateRect);
+	DDX_Control(pDX, IDC_SLIDER_WINDOW, mSliderWindow);
 }
 
 BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
@@ -86,6 +96,9 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BTN_ZOOM_UP, &CLabelMeWinDlg::OnBnClickedBtnZoomUp)
 	ON_BN_CLICKED(IDC_BTN_ZOOM_DOWN, &CLabelMeWinDlg::OnBnClickedBtnZoomDown)
 	ON_BN_CLICKED(IDC_BTN_CREATE_RECT, &CLabelMeWinDlg::OnBnClickedBtnCreateRect)
+	ON_WM_HSCROLL()
+	ON_BN_CLICKED(IDC_RADIO_WINDOW_POS, &CLabelMeWinDlg::OnBnClickedRadioWindowPos)
+	ON_BN_CLICKED(IDC_RADIO_WINDOW_WIDTH, &CLabelMeWinDlg::OnBnClickedRadioWindowWidth)
 END_MESSAGE_MAP()
 
 double PolygonTest(std::vector<cv::Point2f>& c, Point2f pt, bool measureDist)
@@ -357,6 +370,8 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 
 	((CButton *)GetDlgItem(IDC_RADIO_JPG))->SetCheck(TRUE);//选上
 
+	SetVisableWindow(FALSE);
+
 	LOGD("Init dialog...");
 	return TRUE;  // 除非将焦点设置到控件，否则返回 TRUE
 }
@@ -531,6 +546,35 @@ cv::Point2f CLabelMeWinDlg::GetCurrentScaler()
 		rt.y = float(mroiScale.height) / float(mShow.rows);
 	}*/
 	return rt;
+}
+
+void CLabelMeWinDlg::ShowPosAndWidth()
+{
+	CString str;
+	str.Format(_T("窗位：%d"), (int)mDCMPos);
+	GetDlgItem(IDC_RADIO_WINDOW_POS)->SetWindowText(str);
+	str.Format(_T("窗宽：%d"), (int)mDCMWidth);
+	GetDlgItem(IDC_RADIO_WINDOW_WIDTH)->SetWindowText(str);
+}
+
+void CLabelMeWinDlg::SetVisableWindow(BOOL flag)
+{
+	GetDlgItem(IDC_RADIO_WINDOW_POS)->ShowWindow(flag);
+	GetDlgItem(IDC_RADIO_WINDOW_WIDTH)->ShowWindow(flag);
+	mSliderWindow.ShowWindow(flag);
+}
+
+void CLabelMeWinDlg::SetWindowPosControl()
+{
+	mpDCMReader->GetWindow(&mDCMWidth, &mDCMPos);
+	ShowPosAndWidth();
+	SetVisableWindow(TRUE);
+	//slider bar 
+	//初值化为Pos 
+	((CButton *)GetDlgItem(IDC_RADIO_WINDOW_POS))->SetCheck(TRUE);//选上
+	mSliderWindow.SetRange(WINDOW_POS_MIN, WINDOW_POS_MAX);
+	mSliderWindow.SetTicFreq(WINDOW_POS_TIC);
+	mSliderWindow.SetPos(int(mDCMPos));
 }
 
 void CLabelMeWinDlg::OnBnClickedOk()
@@ -1143,11 +1187,13 @@ int CLabelMeWinDlg::LoadImageAndShow()
 		Mat m(imgs[0].height, imgs[0].width, type, imgs[0].data, imgs[0].step);
 		mSrc = m.clone();
 		ReleaseDiImage(imgs, imgNum);
+		SetWindowPosControl();
 	}
 	else
 	{
 		mSrc = imread(p);
 		delete[] p;
+		SetVisableWindow(FALSE);
 	}
 
 	if (mSrc.empty())
@@ -2130,4 +2176,136 @@ int CLabelMeWinDlg::MakeScaleImage(cv::Mat& src, cv::Mat& dst, UINT id)
 }
 
 #pragma endregion
+
+
+
+void CLabelMeWinDlg::OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if (*pScrollBar == mSliderWindow)
+	{
+		//get pos 
+		//判断当前模式
+		int pos = mSliderWindow.GetPos();
+		CString str;
+		if (((CButton *)GetDlgItem(IDC_RADIO_WINDOW_POS))->GetCheck() == 1)
+		{
+			mDCMPos = pos;
+			str.Format(_T("窗位：%d"), pos);
+			GetDlgItem(IDC_RADIO_WINDOW_POS)->SetWindowText(str);
+		}
+		else
+		{
+			mDCMWidth = pos;
+			str.Format(_T("窗宽：%d"), pos);
+			GetDlgItem(IDC_RADIO_WINDOW_WIDTH)->SetWindowText(str);
+		}
+		//
+		mpDCMReader->SetWindow(mDCMWidth, mDCMPos);
+		//for dcm 
+		int imgNum = 0;
+		TDiImage* imgs;
+		mpDCMReader->Decode2Img(&imgs, &imgNum);
+
+		if (imgNum <= 0)
+		{
+			//MessageBox(_T("无法读取文件：\r\n") + mCurrentFile);
+			return CDialogEx::OnHScroll(nSBCode, nPos, pScrollBar);
+		}
+
+		//
+		int type = CV_8UC3;
+		if (imgs[0].channels == 1)
+			type = CV_8UC1;
+		Mat m(imgs[0].height, imgs[0].width, type, imgs[0].data, imgs[0].step);
+		mSrc = m.clone();
+		ReleaseDiImage(imgs, imgNum);
+		MakeScaleImage(mSrc, mShow, IDC_PIC);
+		Mat tmp = mShow.clone();
+		DrawCurrentPoly(tmp);
+		DrawPolys(tmp);
+		DrawCurrentPoly(tmp);
+		ConvertMatToCImage(tmp, mCimg);
+		DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+
+		int x = 0;
+		x++;
+	}
+
+	CDialogEx::OnHScroll(nSBCode, nPos, pScrollBar);
+}
+
+
+void CLabelMeWinDlg::OnBnClickedRadioWindowPos()
+{
+	// TODO: 点击了窗位按钮
+	mSliderWindow.SetRange(WINDOW_POS_MIN, WINDOW_POS_MAX);
+	mSliderWindow.SetTicFreq(WINDOW_POS_TIC);
+	mSliderWindow.SetPos(int(mDCMPos));
+
+	//
+	mpDCMReader->SetWindow(mDCMWidth, mDCMPos);
+	//for dcm 
+	int imgNum = 0;
+	TDiImage* imgs;
+	mpDCMReader->Decode2Img(&imgs, &imgNum);
+
+	if (imgNum <= 0)
+	{
+		MessageBox(_T("无法读取文件：\r\n") + mCurrentFile);
+		return ;
+	}
+
+	//
+	int type = CV_8UC3;
+	if (imgs[0].channels == 1)
+		type = CV_8UC1;
+	Mat m(imgs[0].height, imgs[0].width, type, imgs[0].data, imgs[0].step);
+	mSrc = m.clone();
+	ReleaseDiImage(imgs, imgNum);
+	MakeScaleImage(mSrc, mShow, IDC_PIC);
+	Mat tmp = mShow.clone();
+	DrawCurrentPoly(tmp);
+	DrawPolys(tmp);
+	DrawCurrentPoly(tmp);
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+}
+
+
+void CLabelMeWinDlg::OnBnClickedRadioWindowWidth()
+{
+	// TODO: 点击了窗宽按钮
+	mSliderWindow.SetRange(WINDOW_WIDTH_MIN, WINDOW_WIDTH_MAX);
+	mSliderWindow.SetTicFreq(WINDOW_WIDTH_TIC);
+	mSliderWindow.SetPos(int(mDCMWidth));
+
+	//
+	mpDCMReader->SetWindow(mDCMWidth, mDCMPos);
+	//for dcm 
+	int imgNum = 0;
+	TDiImage* imgs;
+	mpDCMReader->Decode2Img(&imgs, &imgNum);
+
+	if (imgNum <= 0)
+	{
+		MessageBox(_T("无法读取文件：\r\n") + mCurrentFile);
+		return;
+	}
+
+	//
+	int type = CV_8UC3;
+	if (imgs[0].channels == 1)
+		type = CV_8UC1;
+	Mat m(imgs[0].height, imgs[0].width, type, imgs[0].data, imgs[0].step);
+	mSrc = m.clone();
+	ReleaseDiImage(imgs, imgNum);
+	MakeScaleImage(mSrc, mShow, IDC_PIC);
+	Mat tmp = mShow.clone();
+	DrawCurrentPoly(tmp);
+	DrawPolys(tmp);
+	DrawCurrentPoly(tmp);
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+}
 
