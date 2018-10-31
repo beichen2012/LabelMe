@@ -876,32 +876,47 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 		return;
 	}
 	//≈≈–Ú, value-index
-	std::vector<std::pair<int, int>> sortIndex;
-	std::regex re(R"((\d)+)");
-	std::cmatch match;
-	char filename[4096];
-	for (int i = 0; i < mvFiles.size(); i++)
-	{
-		auto ele = std::pair<int, int>(-1, i);
-		memset(filename, 0, sizeof(filename));
-		_splitpath(mvFiles[i].c_str(), NULL, NULL, filename, NULL);
 
-		if (std::regex_search(filename, match, re))
-		{
-			//ele.first = std::atoi(match[0].str());
-			ele.first = std::stoi(match[0].str());
-		}
-		sortIndex.emplace_back(ele);
-	}
-	std::sort(sortIndex.begin(), sortIndex.end(), [](const std::pair<int, int>& left, const std::pair<int, int>& right) {
-		return left.first < right.first;
+	std::sort(mvFiles.begin(), mvFiles.end(), [](std::string& left, std::string& right) {
+		int ret = 0;
+		if (left.length() > right.length())
+			return false;
+		if (left.length() < right.length())
+			return true;
+		ret = left.compare(right);
+		if (ret > 0)
+			return false;
+		else
+			return true;
 	});
-	//
-	auto tmpFiles = std::move(mvFiles);
-	for (int i = 0; i < sortIndex.size(); i++)
-	{
-		mvFiles.emplace_back(tmpFiles[sortIndex[i].second]);
-	}
+
+
+	//std::vector<std::pair<int, int>> sortIndex;
+	//std::regex re(R"((\d)+)");
+	//std::cmatch match;
+	//char filename[4096];
+	//for (int i = 0; i < mvFiles.size(); i++)
+	//{
+	//	auto ele = std::pair<int, int>(-1, i);
+	//	memset(filename, 0, sizeof(filename));
+	//	_splitpath(mvFiles[i].c_str(), NULL, NULL, filename, NULL);
+
+	//	if (std::regex_search(filename, match, re))
+	//	{
+	//		//ele.first = std::atoi(match[0].str());
+	//		ele.first = std::stoi(match[0].str());
+	//	}
+	//	sortIndex.emplace_back(ele);
+	//}
+	//std::sort(sortIndex.begin(), sortIndex.end(), [](const std::pair<int, int>& left, const std::pair<int, int>& right) {
+	//	return left.first < right.first;
+	//});
+	////
+	//auto tmpFiles = std::move(mvFiles);
+	//for (int i = 0; i < sortIndex.size(); i++)
+	//{
+	//	mvFiles.emplace_back(tmpFiles[sortIndex[i].second]);
+	//}
 
 
 	mCurrentFile = CString(mvFiles[0].c_str());
