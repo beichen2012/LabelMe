@@ -1015,8 +1015,9 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	RefreshROILists();
 
 	//╪стьм╪ф╛
-	LoadImageAndShow();
 	FindCurrentLabels();
+	LoadImageAndShow();
+	
 	//List 
 	ItemHighLight(0, mListFiles);
 	mbLButtonDown = false;
