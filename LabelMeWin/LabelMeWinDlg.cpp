@@ -1234,12 +1234,14 @@ int CLabelMeWinDlg::LoadImageAndShow()
 		mSrc = m.clone();
 		ReleaseDiImage(imgs, imgNum);
 		SetWindowPosControl();
+		mbDCM = true;
 	}
 	else
 	{
 		mSrc = imread(p);
 		delete[] p;
 		SetVisableWindow(FALSE);
+		mbDCM = false;
 	}
 
 	if (mSrc.empty())
@@ -2000,7 +2002,8 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 		mbZoom = true;
 		GetDlgItem(IDC_BTN_ZOOM_UP)->EnableWindow(TRUE);
 		GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(TRUE);
-		SetVisableWindow(FALSE);
+		if(mbDCM)
+			SetVisableWindow(FALSE);
 
 		//画十字线，允许鼠标拖动图片
 		MakeScaleImage(mSrc, mShow, IDC_PIC);
@@ -2017,7 +2020,8 @@ void CLabelMeWinDlg::OnBnClickedCheckZoom()
 		mbZoom = false;
 		GetDlgItem(IDC_BTN_ZOOM_UP)->EnableWindow(FALSE);
 		GetDlgItem(IDC_BTN_ZOOM_DOWN)->EnableWindow(FALSE);
-		SetVisableWindow(TRUE);
+		if (mbDCM)
+			SetVisableWindow(TRUE);
 
 		//取消画十字线
 		MakeScaleImage(mSrc, mShow, IDC_PIC);

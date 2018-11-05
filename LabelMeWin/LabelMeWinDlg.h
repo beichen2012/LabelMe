@@ -160,6 +160,7 @@ public:
 	void ShowPosAndWidth();
 	void SetVisableWindow(BOOL flag);
 	void SetWindowPosControl();
+	bool mbDCM;
 
 public:
 	afx_msg void OnBnClickedOk();
