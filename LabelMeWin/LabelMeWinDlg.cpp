@@ -13,6 +13,7 @@
 #include <regex>
 using namespace cv;
 
+cv::RNG rng(time(0));
 //最多放大倍率
 #define MAX_SCALE_RATIO 4
 #define SCALE_STEP 0.5
@@ -39,6 +40,21 @@ using namespace cv;
 #define WINDOW_WIDTH_TIC 10
 
 #define WINDOW_INF 1000000
+
+
+// 标签颜色
+static std::vector<cv::Scalar> gvColors = {
+	{ 25, 217, 217 },
+	{ 50, 115, 184 },
+	{ 107, 35, 142 },
+	{ 204, 153, 50 },
+	{ 153, 50, 204 },
+	{ 142, 35, 35 },
+	{ 0, 127, 255 },
+	{ 47, 79, 79 }
+};
+
+
 
 // CLabelMeWinDlg 对话框
 
@@ -747,12 +763,21 @@ void CLabelMeWinDlg::FindCurrentLabels()
 				int y = cell[j]["y"].GetInt();
 				pts.push_back(cv::Point2f(x,y));
 			}
+			
+			if (mmapColor.find(label) == mmapColor.end())
+			{
+				int idx = mmapColor.size();
+				mmapColor[label] = idx;
+				gvColors.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)));
+				//mmapColor[label] = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+			}
 			mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(pts)));
 			auto win_pos = json_ia["pos"].GetInt();
 			auto win_width = json_ia["width"].GetInt();
 			mvWindows.emplace_back(std::pair<int, int>(win_pos, win_width));
 			mDCMPos = win_pos;
 			mDCMWidth = win_width;
+			
 		}
 	}
 
@@ -1566,6 +1591,13 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 				}
 
 				//2. 保存进行下一个
+				if (mmapColor.find(label) == mmapColor.end())
+				{
+					int idx = mmapColor.size();
+					mmapColor[label] = idx;
+					gvColors.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)));
+					//mmapColor[label] = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+				}
 				auto pa = std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(mvRoi));
 				auto pw = std::pair<int, int>(int(mDCMPos), int(mDCMWidth));
 				mvPolys.emplace_back(std::move(pa));
@@ -1615,6 +1647,13 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 			//mvRoi.push_back(pt1);
 
 			//2. 保存进行下一个
+			if (mmapColor.find(label) == mmapColor.end())
+			{
+				int idx = mmapColor.size();
+				mmapColor[label] = idx;
+				gvColors.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)));
+				//mmapColor[label] = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+			}
 			auto pa = std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(mvRoi));
 			auto pw = std::pair<int, int>(int(mDCMPos), int(mDCMWidth));
 			mvPolys.emplace_back(std::move(pa));
@@ -1779,20 +1818,21 @@ void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
 	for (auto& i : mvPolys)
 	{
 		auto& v = i.second;
+		auto color = gvColors[mmapColor[i.first]];
 		for (int k = 0; k < v.size(); k++)
 		{
 			pt1 = v[k];
 			pt1 = SourcePt2CanvasPt(pt1);
-			circle(canvas, pt1, POINT_CIRCLE_R, COLOR_BLUE, -1);
+			circle(canvas, pt1, POINT_CIRCLE_R, color, -1);
 			if (k == v.size() - 1)
 			{
 				pt2 = SourcePt2CanvasPt(v[0]);
-				line(canvas, pt1, pt2, COLOR_BLUE, POINT_LINE_R);
+				line(canvas, pt1, pt2, color, POINT_LINE_R);
 			}
 			else
 			{
 				pt2 = SourcePt2CanvasPt(v[k + 1]);
-				line(canvas, pt1, pt2, COLOR_BLUE, POINT_LINE_R);
+				line(canvas, pt1, pt2, color, POINT_LINE_R);
 			}
 		}
 	}

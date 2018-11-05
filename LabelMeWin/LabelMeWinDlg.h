@@ -98,6 +98,7 @@ public:
 	std::vector<cv::Point2f> mvRoi;
 	std::vector<std::pair<std::string, std::vector<cv::Point2f>>> mvPolys;
 	std::vector<std::pair<int, int>> mvWindows;
+	std::map<std::string, int> mmapColor;
 
 	//标识当前的contours 索引
 	int mCurrentPolyIdx;
