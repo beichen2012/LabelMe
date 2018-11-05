@@ -91,7 +91,7 @@ void CDlgAddedLabel::OnNMClickListAddedLabels(NMHDR *pNMHDR, LRESULT *pResult)
 		return;
 
 	//
-	CString txt = mList.GetItemText(pNMItemActivate->iItem, pNMItemActivate->iSubItem);
+	CString txt = mList.GetItemText(pNMItemActivate->iItem, 2);
 
 	GetDlgItem(IDC_EDIT_INPUT_LABEL)->SetWindowTextW(txt);
 }
