@@ -31,4 +31,5 @@ public:
 	virtual BOOL OnInitDialog();
 	CListCtrl mList;
 	afx_msg void OnNMClickListAddedLabels(NMHDR *pNMHDR, LRESULT *pResult);
+	afx_msg void OnNMDblclkListAddedLabels(NMHDR *pNMHDR, LRESULT *pResult);
 };

@@ -33,6 +33,7 @@ void CDlgAddedLabel::DoDataExchange(CDataExchange* pDX)
 BEGIN_MESSAGE_MAP(CDlgAddedLabel, CDialogEx)
 	ON_BN_CLICKED(IDOK, &CDlgAddedLabel::OnBnClickedOk)
 	ON_NOTIFY(NM_CLICK, IDC_LIST_ADDED_LABELS, &CDlgAddedLabel::OnNMClickListAddedLabels)
+	ON_NOTIFY(NM_DBLCLK, IDC_LIST_ADDED_LABELS, &CDlgAddedLabel::OnNMDblclkListAddedLabels)
 END_MESSAGE_MAP()
 
 
@@ -94,4 +95,22 @@ void CDlgAddedLabel::OnNMClickListAddedLabels(NMHDR *pNMHDR, LRESULT *pResult)
 	CString txt = mList.GetItemText(pNMItemActivate->iItem, 2);
 
 	GetDlgItem(IDC_EDIT_INPUT_LABEL)->SetWindowTextW(txt);
+}
+
+void CDlgAddedLabel::OnNMDblclkListAddedLabels(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+	// TODO: 在此添加控件通知处理程序代码
+	*pResult = 0;
+
+	int idx = pNMItemActivate->iItem;
+	if (idx > mlabels.size() - 1)
+		return;
+
+	//
+	CString txt = mList.GetItemText(pNMItemActivate->iItem, 2);
+
+	GetDlgItem(IDC_EDIT_INPUT_LABEL)->SetWindowTextW(txt);
+	mEditLabel = txt;
+	CDlgAddedLabel::OnOK();
 }

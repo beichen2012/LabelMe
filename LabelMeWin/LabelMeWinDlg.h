@@ -206,4 +206,5 @@ public:
 	afx_msg void OnHScroll(UINT nSBCode, UINT nPos, CScrollBar* pScrollBar);
 	afx_msg void OnBnClickedRadioWindowPos();
 	afx_msg void OnBnClickedRadioWindowWidth();
+	afx_msg void OnBnClickedCheckShow();
 };

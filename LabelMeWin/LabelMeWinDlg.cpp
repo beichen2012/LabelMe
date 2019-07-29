@@ -117,6 +117,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_WM_HSCROLL()
 	ON_BN_CLICKED(IDC_RADIO_WINDOW_POS, &CLabelMeWinDlg::OnBnClickedRadioWindowPos)
 	ON_BN_CLICKED(IDC_RADIO_WINDOW_WIDTH, &CLabelMeWinDlg::OnBnClickedRadioWindowWidth)
+	ON_BN_CLICKED(IDC_CHECK_SHOW, &CLabelMeWinDlg::OnBnClickedCheckShow)
 END_MESSAGE_MAP()
 
 double PolygonTest(std::vector<cv::Point2f>& c, Point2f pt, bool measureDist)
@@ -351,6 +352,9 @@ BOOL CLabelMeWinDlg::OnInitDialog()
 	//自动保存
 	mbAutoSave = true;
 	((CButton *)GetDlgItem(IDC_CHECK_AUTOSAVE))->SetCheck(1);
+
+	// 显示 标注
+	((CButton*)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(1);
 
 	//默认是创建多边形模式
 	mnStatusIndicator = INDICATOR_CREATE_POLY;
@@ -1814,6 +1818,8 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 
 void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
 {
+	if (((CButton *)GetDlgItem(IDC_CHECK_SHOW))->GetCheck() == 0)
+		return;
 	Point pt1, pt2;
 	for (auto& i : mvPolys)
 	{
@@ -1839,6 +1845,8 @@ void CLabelMeWinDlg::DrawPolys(cv::Mat& canvas)
 }
 void CLabelMeWinDlg::DrawCurrentPoly(cv::Mat& canvas)
 {
+	if (((CButton *)GetDlgItem(IDC_CHECK_SHOW))->GetCheck() == 0)
+		return;
 	Point pt1, pt2;
 	for (int i = 0; i < mvRoi.size(); i++)
 	{
@@ -2407,3 +2415,15 @@ void CLabelMeWinDlg::OnBnClickedRadioWindowWidth()
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
+
+
+void CLabelMeWinDlg::OnBnClickedCheckShow()
+{
+	// TODO: 
+	MakeScaleImage(mSrc, mShow, IDC_PIC);
+	Mat tmp = mShow.clone();
+	DrawCurrentPoly(tmp);
+	DrawPolys(tmp);
+	ConvertMatToCImage(tmp, mCimg);
+	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+}
