@@ -39,7 +39,8 @@ cv::RNG rng(time(0));
 #define WINDOW_WIDTH_MAX 800
 #define WINDOW_WIDTH_TIC 10
 
-#define WINDOW_INF 1000000
+//#define WINDOW_INF 1000000
+#define WINDOW_INF (double)0x3f3f3f3f
 
 
 // ±Í«©—’…´
@@ -756,33 +757,71 @@ void CLabelMeWinDlg::FindCurrentLabels()
 		std::string label;
 		std::vector<cv::Point2f> pts;
 		auto& json_ia = v[i];
-		label = json_ia["label"].GetString();
 
-		if (json_ia.HasMember("pts") && json_ia.HasMember("pos") && json_ia.HasMember("width"))
+		if (json_ia.HasMember("label"))
 		{
-			auto& cell = json_ia["pts"].GetArray();
-			for (SizeType j = 0; j < cell.Size(); j++)
+			label = json_ia["label"].GetString();
+
+			if (json_ia.HasMember("pts"))
 			{
-				int x = cell[j]["x"].GetInt();
-				int y = cell[j]["y"].GetInt();
-				pts.push_back(cv::Point2f(x,y));
+				auto& cell = json_ia["pts"].GetArray();
+				for (SizeType j = 0; j < cell.Size(); j++)
+				{
+					int x = cell[j]["x"].GetInt();
+					int y = cell[j]["y"].GetInt();
+					pts.push_back(cv::Point2f(x, y));
+				}
+
+				if (mmapColor.find(label) == mmapColor.end())
+				{
+					int idx = mmapColor.size();
+					mmapColor[label] = idx;
+					gvColors.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)));
+					//mmapColor[label] = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+				}
+				mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(pts)));
 			}
-			
-			if (mmapColor.find(label) == mmapColor.end())
+			if (json_ia.HasMember("pos") && json_ia.HasMember("width"))
 			{
-				int idx = mmapColor.size();
-				mmapColor[label] = idx;
-				gvColors.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)));
-				//mmapColor[label] = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+				auto win_pos = json_ia["pos"].GetInt();
+				auto win_width = json_ia["width"].GetInt();
+				mvWindows.emplace_back(std::pair<int, int>(win_pos, win_width));
+				mDCMPos = win_pos;
+				mDCMWidth = win_width;
 			}
-			mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(pts)));
-			auto win_pos = json_ia["pos"].GetInt();
-			auto win_width = json_ia["width"].GetInt();
-			mvWindows.emplace_back(std::pair<int, int>(win_pos, win_width));
-			mDCMPos = win_pos;
-			mDCMWidth = win_width;
-			
+			else
+			{
+				mvWindows.emplace_back(std::pair<int, int>(mDCMPos, mDCMWidth));
+			}
 		}
+
+		//label = json_ia["label"].GetString();
+
+		//if (json_ia.HasMember("pts") && json_ia.HasMember("pos") && json_ia.HasMember("width"))
+		//{
+		//	auto& cell = json_ia["pts"].GetArray();
+		//	for (SizeType j = 0; j < cell.Size(); j++)
+		//	{
+		//		int x = cell[j]["x"].GetInt();
+		//		int y = cell[j]["y"].GetInt();
+		//		pts.push_back(cv::Point2f(x,y));
+		//	}
+		//	
+		//	if (mmapColor.find(label) == mmapColor.end())
+		//	{
+		//		int idx = mmapColor.size();
+		//		mmapColor[label] = idx;
+		//		gvColors.push_back(cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)));
+		//		//mmapColor[label] = cv::Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255));
+		//	}
+		//	mvPolys.emplace_back(std::pair<std::string, std::vector<cv::Point2f>>(std::move(label), std::move(pts)));
+		//	auto win_pos = json_ia["pos"].GetInt();
+		//	auto win_width = json_ia["width"].GetInt();
+		//	mvWindows.emplace_back(std::pair<int, int>(win_pos, win_width));
+		//	mDCMPos = win_pos;
+		//	mDCMWidth = win_width;
+		//	
+		//}
 	}
 
 	// ±Í«©
