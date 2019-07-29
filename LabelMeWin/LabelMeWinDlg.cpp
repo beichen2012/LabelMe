@@ -965,6 +965,10 @@ void CLabelMeWinDlg::OnBnClickedBtnOpen()
 	ItemHighLight(0, mListFiles);
 	mbLButtonDown = false;
 
+	mbZoom = false;
+	mfScalor = 1.0f;
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
+
 	FindCurrentLabels();
 	LoadImageAndShow();
 	LEAVE_FUNC;
@@ -1084,6 +1088,10 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 
 	//¼ÓÔØÍ¼Æ¬
 	FindCurrentLabels();
+
+	mbZoom = false;
+	mfScalor = 1.0f;
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
 	LoadImageAndShow();
 	
 	//List 
@@ -1136,6 +1144,10 @@ void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 	mCurrentIndex++;
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
 	FindCurrentLabels();
+
+	mbZoom = false;
+	mfScalor = 1.0f;
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
 	LoadImageAndShow();
 	
 	//List 
@@ -1187,6 +1199,10 @@ void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
 	mCurrentIndex--;
 	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
 	FindCurrentLabels();
+
+	mbZoom = false;
+	mfScalor = 1.0f;
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
 	LoadImageAndShow();
 	
 	//List 
