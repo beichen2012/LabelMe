@@ -207,4 +207,5 @@ public:
 	afx_msg void OnBnClickedRadioWindowPos();
 	afx_msg void OnBnClickedRadioWindowWidth();
 	afx_msg void OnBnClickedCheckShow();
+	afx_msg void OnBnClickedBtnDeleteFile();
 };

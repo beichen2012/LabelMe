@@ -119,6 +119,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_RADIO_WINDOW_POS, &CLabelMeWinDlg::OnBnClickedRadioWindowPos)
 	ON_BN_CLICKED(IDC_RADIO_WINDOW_WIDTH, &CLabelMeWinDlg::OnBnClickedRadioWindowWidth)
 	ON_BN_CLICKED(IDC_CHECK_SHOW, &CLabelMeWinDlg::OnBnClickedCheckShow)
+	ON_BN_CLICKED(IDC_BTN_DELETE_FILE, &CLabelMeWinDlg::OnBnClickedBtnDeleteFile)
 END_MESSAGE_MAP()
 
 double PolygonTest(std::vector<cv::Point2f>& c, Point2f pt, bool measureDist)
@@ -2481,4 +2482,19 @@ void CLabelMeWinDlg::OnBnClickedCheckShow()
 	DrawPolys(tmp);
 	ConvertMatToCImage(tmp, mCimg);
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
+}
+
+
+void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
+{
+	// TODO: 删除当前文件及标注
+	if (mCurrentIndex < 0 || mCurrentIndex >= mvFiles.size())
+	{
+		MessageBox(_T("索引超出范围！"));
+		return;
+	}
+
+	mvFiles.erase(mvFiles.begin() + mCurrentIndex);
+	mCurrentIndex--;
+	OnBnClickedBtnNextImage();
 }
