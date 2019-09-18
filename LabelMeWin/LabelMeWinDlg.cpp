@@ -11,6 +11,8 @@
 #include <fstream>
 #include <rapidjson\document.h>
 #include <regex>
+#include <direct.h>
+#include <io.h>
 using namespace cv;
 
 cv::RNG rng(time(0));
@@ -2484,6 +2486,70 @@ void CLabelMeWinDlg::OnBnClickedCheckShow()
 	DrawCImageCenter(mCimg, GetDlgItem(IDC_PIC), mRectShow);
 }
 
+inline std::string backslash2slash(std::string in)
+{
+	std::regex vr("(\\\\)");
+	std::string out = std::regex_replace(in, vr, "/");
+	return out;
+}
+/*查看文件或目录是否存在*/
+inline bool isFileOrDirEists(const char* path)
+{
+#ifdef _MSC_VER
+	if (0 != _access(path, 0))
+#else
+	if (0 != access(path, 0))
+#endif
+	{
+		return false;
+	}
+	return true;
+}
+
+/*创建目录*/
+inline void createDirectory(const char* path)
+{
+#ifdef _MSC_VER
+	int ret = _mkdir(path);
+#else
+	mkdir(path, 0755);
+#endif
+}
+
+// 递归创建目录
+inline bool createDirectoryRecursive(const char* path)
+{
+	std::vector<std::string> dirs;
+	dirs.push_back(std::string(path));
+	std::string s = path;
+	while (true)
+	{
+		int pos = s.rfind('/');
+		if (pos < 0)
+			break;
+		std::string p = s.substr(0, pos);
+		dirs.push_back(p);
+		s = p;
+	}
+
+	for (int i = dirs.size() - 1; i >= 0; i--)
+	{
+		if (!isFileOrDirEists(dirs[i].c_str()))
+			createDirectory(dirs[i].c_str());
+	}
+	return true;
+}
+
+/*获取当前路径*/
+std::string getExePath()
+{
+	char szFilePath[MAX_PATH + 1] = { 0 };
+	GetModuleFileNameA(NULL, szFilePath, MAX_PATH);
+	(strrchr(szFilePath, '\\'))[0] = 0;
+	std::string path = szFilePath;
+
+	return path;
+}
 
 void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
 {
@@ -2493,8 +2559,73 @@ void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
 		MessageBox(_T("索引超出范围！"));
 		return;
 	}
+	// 将对应的文件及json拷贝到当前目录中
+	//1. 创建保存目录
+	// 删除文件的保存目录
+	const std::string DELETE_PATH = "/deleted";
+	std::string delete_dir = getExePath() + DELETE_PATH;
+	delete_dir = backslash2slash(delete_dir);
+	if (!isFileOrDirEists(delete_dir.c_str()))
+	{
+		createDirectory(delete_dir.c_str());
+	}
+
+	std::string file_path = mvFiles[mCurrentIndex];
+	char* p = cstring_to_char(mRootDir);
+	std::string root_path = std::string(p);
+	delete[] p;
+
+	root_path = backslash2slash(root_path);
+	if (root_path[root_path.length() - 1] != '/')
+		root_path += "/";
+	
+	file_path = backslash2slash(file_path);
+	int pos = file_path.rfind('/');
+	std::string dst_dir = delete_dir + "/";
+	if (pos < 0)
+	{
+		// 没有父目录，直接移动就行
+	}
+	else
+	{
+		std::string parent_dir = dst_dir + file_path.substr(0, pos);
+		if(!isFileOrDirEists(parent_dir.c_str()))
+			createDirectoryRecursive(parent_dir.c_str());
+	}
+
+	// image 
+	std::string src_image_path = root_path + file_path;
+	std::string dst_image_path = dst_dir + file_path;
+	MoveFile(CString(src_image_path.c_str()), CString(dst_image_path.c_str()));
+	// json 
+	pos = file_path.rfind('.');
+	std::string json_path = file_path.substr(0, pos) + ".json";
+	std::string src_json_path = root_path + json_path;
+	if (isFileOrDirEists(src_json_path.c_str()))
+	{
+		std::string dst_json_path = dst_dir + json_path;
+		MoveFile(CString(src_json_path.c_str()), CString(dst_json_path.c_str()));
+	}
 
 	mvFiles.erase(mvFiles.begin() + mCurrentIndex);
-	mCurrentIndex--;
-	OnBnClickedBtnNextImage();
+	if (mCurrentIndex >= mvFiles.size())
+		mCurrentIndex = mvFiles.size() - 1;
+	RefreshFileLists();
+
+	//清空
+	mvPolys.clear();
+	mvRoi.clear();
+	mvWindows.clear();
+	RefreshROILists();
+
+	mCurrentFile = mRootDir + _T("\\") + CString(mvFiles[mCurrentIndex].c_str());
+	FindCurrentLabels();
+
+	mbZoom = false;
+	mfScalor = 1.0f;
+	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
+	LoadImageAndShow();
+
+	//List 
+	ItemHighLight(mCurrentIndex, mListFiles);
 }
