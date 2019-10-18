@@ -183,6 +183,8 @@ public:
 	afx_msg void OnBnClickedBtnOpenDir();
 	afx_msg void OnBnClickedBtnNextImage();
 	afx_msg void OnBnClickedBtnPrevImage();
+	void ClickedNextImpl(int selfHightlight = 1);
+	void ClickedPrevImpl(int selfHightlight = 1);
 	afx_msg void OnBnClickedBtnSave();
 	afx_msg void OnBnClickedBtnCreatePoly();
 	afx_msg void OnBnClickedBtnDeletePoly();

@@ -892,6 +892,7 @@ void CLabelMeWinDlg::ItemHighLight(int idx, CListCtrl& list)
 	}
 	if (idx >= 0)
 	{
+		list.SetFocus();
 		list.SetItemState(idx, LVIS_SELECTED | LVIS_FOCUSED, LVIS_SELECTED | LVIS_FOCUSED);
 		list.EnsureVisible(idx, FALSE);
 	}
@@ -1104,8 +1105,7 @@ void CLabelMeWinDlg::OnBnClickedBtnOpenDir()
 	LEAVE_FUNC;
 }
 
-
-void CLabelMeWinDlg::OnBnClickedBtnNextImage()
+void CLabelMeWinDlg::ClickedNextImpl(int selfHightlight)
 {
 	// TODO: 下一张
 	if (mCurrentIndex == mvFiles.size() - 1 || mvFiles.size() <= 0)
@@ -1152,17 +1152,19 @@ void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 	mfScalor = 1.0f;
 	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
 	LoadImageAndShow();
-	
+
 	//List 
-	ItemHighLight(mCurrentIndex, mListFiles);
-
-
+	if(selfHightlight)
+		ItemHighLight(mCurrentIndex, mListFiles);
 }
 
-
-void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
+void CLabelMeWinDlg::OnBnClickedBtnNextImage()
 {
-	// TODO: 前一张
+	return ClickedNextImpl(1);
+}
+
+void CLabelMeWinDlg::ClickedPrevImpl(int selfHightlight)
+{
 	if (mCurrentIndex == 0)
 	{
 		MessageBox(_T("已经是第一张了"));
@@ -1207,9 +1209,15 @@ void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
 	mfScalor = 1.0f;
 	((CButton*)GetDlgItem(IDC_CHECK_ZOOM))->SetCheck(0);
 	LoadImageAndShow();
-	
+
 	//List 
-	ItemHighLight(mCurrentIndex, mListFiles);
+	if(selfHightlight)
+		ItemHighLight(mCurrentIndex, mListFiles);
+}
+void CLabelMeWinDlg::OnBnClickedBtnPrevImage()
+{
+	// TODO: 前一张
+	ClickedPrevImpl(1);
 }
 
 void CLabelMeWinDlg::OnBnClickedBtnSave()
@@ -2082,10 +2090,57 @@ BOOL CLabelMeWinDlg::PreTranslateMessage(MSG* pMsg)
 			//取消默认关闭窗体事件
 			return TRUE;
 		}
-		if (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT || pMsg->wParam == VK_UP || pMsg->wParam == VK_DOWN)
+		//if (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT || pMsg->wParam == VK_UP || pMsg->wParam == VK_DOWN)
+		//{
+		//	return TRUE;
+		//}
+		if (pMsg->hwnd == ::GetDlgItem(this->m_hWnd, IDC_LIST_FILES))
 		{
-			return TRUE;
+			if (pMsg->wParam == VK_DOWN)
+			{
+				//OnBnClickedBtnNextImage();
+				ClickedNextImpl(0);
+			}
+			if (pMsg->wParam == VK_UP)
+			{
+				//OnBnClickedBtnPrevImage();
+				ClickedPrevImpl(0);
+			}
+			if (pMsg->wParam == VK_LEFT)
+			{
+				if (((CButton *)GetDlgItem(IDC_CHECK_SHOW))->GetCheck() == 0)
+					((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(1);
+				else
+					((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(0);
+				OnBnClickedCheckShow();
+			}
+			if (pMsg->wParam == VK_RIGHT)
+			{
+				OnBnClickedBtnDeleteFile();
+			}
 		}
+
+		if (pMsg->hwnd == ::GetDlgItem(this->m_hWnd, IDC_LIST_POLYS))
+		{
+			if (pMsg->wParam == VK_DOWN)
+			{
+				if (mCurrentPolyIdx < mvPolys.size())
+				{
+					mCurrentPolyIdx++;
+					DrawIdxRedPolys(mCurrentPolyIdx);
+				}
+			}
+			if (pMsg->wParam == VK_UP)
+			{
+				if (mCurrentPolyIdx > 0)
+				{
+					mCurrentPolyIdx--;
+					DrawIdxRedPolys(mCurrentPolyIdx);
+				}
+			}
+		}
+
+
 	}
 
 	return CDialogEx::PreTranslateMessage(pMsg);
