@@ -2114,10 +2114,10 @@ BOOL CLabelMeWinDlg::PreTranslateMessage(MSG* pMsg)
 					((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(0);
 				OnBnClickedCheckShow();
 			}
-			if (pMsg->wParam == VK_RIGHT)
-			{
-				OnBnClickedBtnDeleteFile();
-			}
+			//if (pMsg->wParam == VK_RIGHT)
+			//{
+			//	OnBnClickedBtnDeleteFile();
+			//}
 		}
 
 		if (pMsg->hwnd == ::GetDlgItem(this->m_hWnd, IDC_LIST_POLYS))
