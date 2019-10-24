@@ -2090,55 +2090,83 @@ BOOL CLabelMeWinDlg::PreTranslateMessage(MSG* pMsg)
 			//取消默认关闭窗体事件
 			return TRUE;
 		}
-		//if (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT || pMsg->wParam == VK_UP || pMsg->wParam == VK_DOWN)
-		//{
-		//	return TRUE;
-		//}
-		if (pMsg->hwnd == ::GetDlgItem(this->m_hWnd, IDC_LIST_FILES))
+		if (pMsg->wParam == VK_LEFT || pMsg->wParam == VK_RIGHT || pMsg->wParam == VK_UP || pMsg->wParam == VK_DOWN)
 		{
-			if (pMsg->wParam == VK_DOWN)
-			{
-				//OnBnClickedBtnNextImage();
-				ClickedNextImpl(0);
-			}
-			if (pMsg->wParam == VK_UP)
-			{
-				//OnBnClickedBtnPrevImage();
-				ClickedPrevImpl(0);
-			}
-			if (pMsg->wParam == VK_LEFT)
-			{
-				if (((CButton *)GetDlgItem(IDC_CHECK_SHOW))->GetCheck() == 0)
-					((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(1);
-				else
-					((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(0);
-				OnBnClickedCheckShow();
-			}
-			//if (pMsg->wParam == VK_RIGHT)
-			//{
-			//	OnBnClickedBtnDeleteFile();
-			//}
+			return TRUE;
 		}
+		//if (pMsg->hwnd == ::GetDlgItem(this->m_hWnd, IDC_LIST_FILES))
+		//{
+		//	if (pMsg->wParam == VK_DOWN)
+		//	{
+		//		//OnBnClickedBtnNextImage();
+		//		ClickedNextImpl(0);
+		//	}
+		//	if (pMsg->wParam == VK_UP)
+		//	{
+		//		//OnBnClickedBtnPrevImage();
+		//		ClickedPrevImpl(0);
+		//	}
+		//	if (pMsg->wParam == VK_LEFT)
+		//	{
+		//		if (((CButton *)GetDlgItem(IDC_CHECK_SHOW))->GetCheck() == 0)
+		//			((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(1);
+		//		else
+		//			((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(0);
+		//		OnBnClickedCheckShow();
+		//	}
+		//	//if (pMsg->wParam == VK_RIGHT)
+		//	//{
+		//	//	OnBnClickedBtnDeleteFile();
+		//	//}
+		//}
 
 		if (pMsg->hwnd == ::GetDlgItem(this->m_hWnd, IDC_LIST_POLYS))
 		{
-			if (pMsg->wParam == VK_DOWN)
+			//按下字母d(D)
+			if (pMsg->wParam == 0xe5 || pMsg->wParam == 0x44)
 			{
-				if (mCurrentPolyIdx < mvPolys.size())
-				{
-					mCurrentPolyIdx++;
-					DrawIdxRedPolys(mCurrentPolyIdx);
-				}
+				//删除当前标注
+				OnBnClickedBtnDeletePoly();
 			}
-			if (pMsg->wParam == VK_UP)
-			{
-				if (mCurrentPolyIdx > 0)
-				{
-					mCurrentPolyIdx--;
-					DrawIdxRedPolys(mCurrentPolyIdx);
-				}
-			}
+			//if (pMsg->wParam == VK_DOWN)
+			//{
+			//	if (mCurrentPolyIdx < mvPolys.size())
+			//	{
+			//		mCurrentPolyIdx++;
+			//		DrawIdxRedPolys(mCurrentPolyIdx);
+			//	}
+			//}
+			//if (pMsg->wParam == VK_UP)
+			//{
+			//	if (mCurrentPolyIdx > 0)
+			//	{
+			//		mCurrentPolyIdx--;
+			//		DrawIdxRedPolys(mCurrentPolyIdx);
+			//	}
+			//}
 		}
+
+		//上一张,a,A 0x41
+		if (pMsg->wParam == 0x41)
+		{
+			//ClickedPrevImpl(0);
+			OnBnClickedBtnPrevImage();
+		}
+		// 下一张， Ff
+		if (pMsg->wParam == 0x46)
+		{
+			OnBnClickedBtnNextImage();
+		}
+		if (pMsg->wParam == 0x53)
+		{
+			if (((CButton *)GetDlgItem(IDC_CHECK_SHOW))->GetCheck() == 0)
+				((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(1);
+			else
+				((CButton *)GetDlgItem(IDC_CHECK_SHOW))->SetCheck(0);
+			OnBnClickedCheckShow();
+		}
+		
+
 
 
 	}
