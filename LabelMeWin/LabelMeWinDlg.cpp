@@ -124,6 +124,9 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_CHECK_SHOW, &CLabelMeWinDlg::OnBnClickedCheckShow)
 	ON_BN_CLICKED(IDC_BTN_DELETE_FILE, &CLabelMeWinDlg::OnBnClickedBtnDeleteFile)
 	ON_WM_RBUTTONDOWN()
+	ON_BN_CLICKED(IDC_BTN_DELETE_FILE2, &CLabelMeWinDlg::OnBnClickedBtnDeleteFile2)
+	ON_BN_CLICKED(IDC_BTN_DELETE_FILE3, &CLabelMeWinDlg::OnBnClickedBtnDeleteFile3)
+	ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 double PolygonTest(std::vector<cv::Point2f>& c, Point2f pt, bool measureDist)
@@ -2653,9 +2656,8 @@ std::string getExePath()
 	return path;
 }
 
-void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
+void CLabelMeWinDlg::DeleteFileImpl(std::string DELETE_PATH)
 {
-	// TODO: 删除当前文件及标注
 	if (mCurrentIndex < 0 || mCurrentIndex >= mvFiles.size())
 	{
 		MessageBox(_T("索引超出范围！"));
@@ -2664,7 +2666,7 @@ void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
 	// 将对应的文件及json拷贝到当前目录中
 	//1. 创建保存目录
 	// 删除文件的保存目录
-	const std::string DELETE_PATH = "/deleted";
+	//const std::string DELETE_PATH = "/deleted";
 	std::string delete_dir = getExePath() + DELETE_PATH;
 	delete_dir = backslash2slash(delete_dir);
 	if (!isFileOrDirEists(delete_dir.c_str()))
@@ -2680,7 +2682,7 @@ void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
 	root_path = backslash2slash(root_path);
 	if (root_path[root_path.length() - 1] != '/')
 		root_path += "/";
-	
+
 	file_path = backslash2slash(file_path);
 	int pos = file_path.rfind('/');
 	std::string dst_dir = delete_dir + "/";
@@ -2691,7 +2693,7 @@ void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
 	else
 	{
 		std::string parent_dir = dst_dir + file_path.substr(0, pos);
-		if(!isFileOrDirEists(parent_dir.c_str()))
+		if (!isFileOrDirEists(parent_dir.c_str()))
 			createDirectoryRecursive(parent_dir.c_str());
 	}
 
@@ -2730,4 +2732,32 @@ void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
 
 	//List 
 	ItemHighLight(mCurrentIndex, mListFiles);
+}
+
+void CLabelMeWinDlg::OnBnClickedBtnDeleteFile()
+{
+	// TODO: 删除当前文件及标注
+	DeleteFileImpl("/OK");
+}
+
+
+void CLabelMeWinDlg::OnBnClickedBtnDeleteFile2()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	DeleteFileImpl("/VAGUE_A");
+}
+
+
+void CLabelMeWinDlg::OnBnClickedBtnDeleteFile3()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	DeleteFileImpl("/VAGUE_B");
+}
+
+void CLabelMeWinDlg::OnClose()
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	int ret = MessageBox(_T("确定退出吗？"), _T("提示"), MB_OKCANCEL);
+	if(ret == IDOK)
+		CDialogEx::OnClose();
 }

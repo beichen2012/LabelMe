@@ -210,5 +210,9 @@ public:
 	afx_msg void OnBnClickedRadioWindowWidth();
 	afx_msg void OnBnClickedCheckShow();
 	afx_msg void OnBnClickedBtnDeleteFile();
+	void DeleteFileImpl(std::string DELETE_PATH);
 	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnBnClickedBtnDeleteFile2();
+	afx_msg void OnBnClickedBtnDeleteFile3();
+	afx_msg void OnClose();
 };
