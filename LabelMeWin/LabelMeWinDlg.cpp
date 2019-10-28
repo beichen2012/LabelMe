@@ -13,6 +13,7 @@
 #include <regex>
 #include <direct.h>
 #include <io.h>
+#define  IsKeyPressed(nVirtKey)     ((GetKeyState(nVirtKey) & (1<<(sizeof(SHORT)*8-1))) != 0)
 using namespace cv;
 
 cv::RNG rng(time(0));
@@ -122,6 +123,7 @@ BEGIN_MESSAGE_MAP(CLabelMeWinDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_RADIO_WINDOW_WIDTH, &CLabelMeWinDlg::OnBnClickedRadioWindowWidth)
 	ON_BN_CLICKED(IDC_CHECK_SHOW, &CLabelMeWinDlg::OnBnClickedCheckShow)
 	ON_BN_CLICKED(IDC_BTN_DELETE_FILE, &CLabelMeWinDlg::OnBnClickedBtnDeleteFile)
+	ON_WM_RBUTTONDOWN()
 END_MESSAGE_MAP()
 
 double PolygonTest(std::vector<cv::Point2f>& c, Point2f pt, bool measureDist)
@@ -1500,6 +1502,17 @@ void CLabelMeWinDlg::DrawCImageCenter(ATL::CImage & image, CWnd * pwnd, CRect & 
 
 
 #pragma region 鼠标事件
+
+void CLabelMeWinDlg::OnRButtonDown(UINT nFlags, CPoint point)
+{
+	// TODO: 在此添加消息处理程序代码和/或调用默认值
+	if (IsKeyPressed(VK_CONTROL) && !IsKeyPressed(VK_MENU))
+	{
+		OnBnClickedBtnZoomDown();
+	}
+	CDialogEx::OnRButtonDown(nFlags, point);
+}
+
 void CLabelMeWinDlg::OnLButtonDown(UINT nFlags, CPoint point)
 {
 	// TODO: 左键按下
@@ -1516,6 +1529,13 @@ void CLabelMeWinDlg::OnLButtonDown(UINT nFlags, CPoint point)
 	{
 		goto RETURN;
 	}
+	// 判断control 键是否被按下
+	if (IsKeyPressed(VK_CONTROL) && !IsKeyPressed(VK_MENU))
+	{
+		OnBnClickedBtnZoomUp();
+		goto RETURN;
+	}
+
 	mbLButtonDown = true;
 	mptButtonDown.x = point.x;
 	mptButtonDown.y = point.y;
@@ -1534,9 +1554,9 @@ void CLabelMeWinDlg::OnLButtonUp(UINT nFlags, CPoint point)
 	if(!mbLButtonDown)
 		return CDialogEx::OnLButtonUp(nFlags, point);
 	mbLButtonDown = false;
-
+	
 	//如果是在缩放模式下，什么也不做
-	if (mbZoom)
+	if (mbZoom || (IsKeyPressed(VK_CONTROL) && IsKeyPressed(VK_MENU)))
 	{
 		//记录下偏移量：
 		int dx = point.x - mptButtonDown.x;
@@ -1768,9 +1788,8 @@ void CLabelMeWinDlg::OnMouseMove(UINT nFlags, CPoint point)
 		return CDialogEx::OnMouseMove(nFlags, point);
 	}
 
-
 	//1.先判断是否是缩放模式下
-	if (mbZoom)
+	if (mbZoom || (IsKeyPressed(VK_CONTROL) && IsKeyPressed(VK_MENU)))
 	{
 		static int drag_interval = 0;
 		drag_interval++;
@@ -2014,7 +2033,7 @@ void CLabelMeWinDlg::OnNMDblclkListPolys(NMHDR *pNMHDR, LRESULT *pResult)
 	}
 	else
 	{
-		MessageBox(_T("你没有选定新的标签，标签将不会修改！"));
+		//MessageBox(_T("你没有选定新的标签，标签将不会修改！"));
 	}
 	delete dlg;
 

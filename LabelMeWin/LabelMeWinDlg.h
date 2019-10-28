@@ -210,4 +210,5 @@ public:
 	afx_msg void OnBnClickedRadioWindowWidth();
 	afx_msg void OnBnClickedCheckShow();
 	afx_msg void OnBnClickedBtnDeleteFile();
+	afx_msg void OnRButtonDown(UINT nFlags, CPoint point);
 };
