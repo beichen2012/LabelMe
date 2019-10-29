@@ -1307,7 +1307,11 @@ int CLabelMeWinDlg::LoadImageAndShow()
 	char ext[4096] = { 0 };
 	_splitpath(p, NULL, NULL, NULL, ext);
 
-	if (strcmp(ext, ".dcm") == 0)
+	std::string str_ext = ext;
+	std::transform(str_ext.begin(), str_ext.end(), str_ext.begin(),
+		[](unsigned char c) { return std::tolower(c); });
+
+	if (str_ext == ".dcm")
 	{
 		//for dcm 
 		int imgNum = 0;
